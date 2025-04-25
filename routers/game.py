@@ -16,46 +16,88 @@ router = APIRouter(
 
 @router.post("/", response_model=GameResponse)
 def create_game(game: GameCreate, db: Session = Depends(get_db)):
-    # Find teams by name
-    team1 = db.query(Team).filter(Team.name == game.team1_name).first()
-    team2 = db.query(Team).filter(Team.name == game.team2_name).first()
-    winning_team = None
-    if game.winning_team_name:
-        winning_team = db.query(Team).filter(Team.name == game.winning_team_name).first()
-    
-    if not team1:
-        raise HTTPException(status_code=404, detail=f"Team {game.team1_name} not found")
-    if not team2:
-        raise HTTPException(status_code=404, detail=f"Team {game.team2_name} not found")
-    if game.winning_team_name and not winning_team:
-        raise HTTPException(status_code=404, detail=f"Winning team {game.winning_team_name} not found")
-    
-    # Validate winning team matches the score
-    if game.winning_team_name:
-        if game.winning_team_name == game.team1_name and game.team1_score <= game.team2_score:
-            raise HTTPException(status_code=400, detail="Winning team score must be higher than losing team score")
-        if game.winning_team_name == game.team2_name and game.team2_score <= game.team1_score:
-            raise HTTPException(status_code=400, detail="Winning team score must be higher than losing team score")
-    
-    db_game = Game(
-        week=game.week,
-        league=game.league,
-        season=game.season,
-        team1_id=team1.id,
-        team2_id=team2.id,
-        winning_team_id=winning_team.id if winning_team else None,
-        team1_score=game.team1_score,
-        team2_score=game.team2_score
-    )
-    db.add(db_game)
-    db.commit()
-    db.refresh(db_game)
-    
-    return GameResponse(
-        success=True,
-        data=GameOut.model_validate(db_game),
-        message="Game created successfully"
-    )
+    try:
+        # Find teams by name
+        team1 = db.query(Team).filter(Team.name == game.team1_name).first()
+        team2 = db.query(Team).filter(Team.name == game.team2_name).first()
+        
+        if not team1:
+            raise HTTPException(status_code=404, detail=f"Team '{game.team1_name}' not found")
+        if not team2:
+            raise HTTPException(status_code=404, detail=f"Team '{game.team2_name}' not found")
+        
+        # Determine winning team
+        winning_team = None
+        if game.winning_team_name:
+            if game.winning_team_name == game.team1_name:
+                winning_team = team1
+            elif game.winning_team_name == game.team2_name:
+                winning_team = team2
+            else:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Winning team '{game.winning_team_name}' must be either '{game.team1_name}' or '{game.team2_name}'"
+                )
+            
+            # Validate winning team matches the score
+            if winning_team == team1 and game.team1_score <= game.team2_score:
+                raise HTTPException(status_code=400, detail="Winning team score must be higher than losing team score")
+            if winning_team == team2 and game.team2_score <= game.team1_score:
+                raise HTTPException(status_code=400, detail="Winning team score must be higher than losing team score")
+        
+        # Create game
+        db_game = Game(
+            week=game.week,
+            league=game.league,
+            season=game.season,
+            team1_id=team1.id,
+            team2_id=team2.id,
+            winning_team_id=winning_team.id if winning_team else None,
+            team1_score=game.team1_score,
+            team2_score=game.team2_score
+        )
+        
+        try:
+            db.add(db_game)
+            db.commit()
+            db.refresh(db_game)
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to create game: {str(e)}")
+        
+        # Create response
+        game_data = GameOut(
+            id=db_game.id,
+            week=db_game.week,
+            league=db_game.league,
+            season=db_game.season,
+            team1_id=team1.id,
+            team1_name=team1.name,
+            team1_score=db_game.team1_score,
+            team2_id=team2.id,
+            team2_name=team2.name,
+            team2_score=db_game.team2_score,
+            winning_team_id=winning_team.id if winning_team else None,
+            winning_team_name=winning_team.name if winning_team else None,
+            version=db_game.version,
+            created_at=db_game.created_at,
+            updated_at=db_game.updated_at,
+            is_deleted=db_game.is_deleted,
+            deleted_at=db_game.deleted_at
+        )
+        
+        return GameResponse(
+            success=True,
+            data=game_data,
+            message="Game created successfully"
+        )
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 @router.get("/", response_model=List[GameOut])
 def get_games(skip: int = 0, limit: int = 100, include_deleted: bool = False, db: Session = Depends(get_db)):

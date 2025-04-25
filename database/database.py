@@ -1,13 +1,17 @@
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, sessionmaker
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Create a single Base instance that all models will use
 Base = declarative_base()
 
 def connect():
     # Create the sqlite directory if it doesn't exist
-    sqlite_dir = "C:/sqlite"
+    sqlite_dir = os.path.dirname(os.getenv('DATABASE_URL').replace('sqlite:///', ''))
     if not os.path.exists(sqlite_dir):
         try:
             os.makedirs(sqlite_dir)
@@ -16,7 +20,10 @@ def connect():
             print(f"Failed to create directory {sqlite_dir}. Error: {e}")
             raise
     
-    uri = "sqlite:///C:/sqlite/flag_football.db"
+    uri = os.getenv('DATABASE_URL')
+    if not uri:
+        raise ValueError("DATABASE_URL environment variable is not set")
+        
     engine = create_engine(uri, connect_args={'check_same_thread': False})
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     

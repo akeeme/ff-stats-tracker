@@ -17,30 +17,48 @@ router = APIRouter(
 
 @router.post("/", response_model=PlayerResponse)
 def create_player(player: PlayerCreate, db: Session = Depends(get_db)):
-    # First find or create the team
-    team = db.query(Team).filter(Team.name == player.team_name).first()
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
-    
-    # Create new player
-    db_player = Player(name=player.name, team_id=team.id)
-    db.add(db_player)
-    db.commit()
-    db.refresh(db_player)
-    
-    # Create response with team information
-    player_data = PlayerOut(
-        id=db_player.id,
-        name=db_player.name,
-        team_id=team.id,
-        team_name=team.name
-    )
-    
-    return PlayerResponse(
-        success=True,
-        data=player_data,
-        message="Player created successfully"
-    )
+    try:
+        # First find the team by name
+        team = db.query(Team).filter(Team.name == player.team_name).first()
+        if not team:
+            raise HTTPException(status_code=404, detail=f"Team '{player.team_name}' not found")
+        
+        # Create new player
+        db_player = Player(name=player.name, team_id=team.id)
+        db.add(db_player)
+        
+        try:
+            db.commit()
+            db.refresh(db_player)
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to create player: {str(e)}")
+        
+        # Create response with team information
+        player_data = PlayerOut(
+            id=db_player.id,
+            name=db_player.name,
+            team_id=team.id,
+            team_name=team.name,
+            version=db_player.version,
+            created_at=db_player.created_at,
+            updated_at=db_player.updated_at,
+            is_deleted=db_player.is_deleted,
+            deleted_at=db_player.deleted_at
+        )
+        
+        return PlayerResponse(
+            success=True,
+            data=player_data,
+            message="Player created successfully"
+        )
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 @router.get("/", response_model=List[PlayerOut])
 def get_players(skip: int = 0, limit: int = 100, include_deleted: bool = False, db: Session = Depends(get_db)):
@@ -84,8 +102,16 @@ def update_player(player_id: int, player_update: PlayerUpdate, version: int, db:
     # Increment version
     db_player.version += 1
     
-    # Update fields
+    # Handle team name update if provided
     update_data = player_update.model_dump(exclude_unset=True)
+    if 'team_name' in update_data:
+        team = db.query(Team).filter(Team.name == update_data['team_name']).first()
+        if not team:
+            raise HTTPException(status_code=404, detail=f"Team '{update_data['team_name']}' not found")
+        update_data['team_id'] = team.id
+        del update_data['team_name']
+    
+    # Update fields
     for key, value in update_data.items():
         setattr(db_player, key, value)
     
