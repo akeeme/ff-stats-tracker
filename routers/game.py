@@ -107,10 +107,31 @@ def get_games(skip: int = 0, limit: int = 100, include_deleted: bool = False, db
     games = query.options(
         joinedload(Game.team1),
         joinedload(Game.team2),
-        joinedload(Game.winning_team),
-        joinedload(Game.stats)
+        joinedload(Game.winning_team)
     ).offset(skip).limit(limit).all()
-    return [GameOut.model_validate(game) for game in games]
+    
+    # Create response with all required fields
+    return [
+        GameOut(
+            id=game.id,
+            week=game.week,
+            league=game.league,
+            season=game.season,
+            team1_id=game.team1_id,
+            team1_name=game.team1.name if game.team1 else None,
+            team1_score=game.team1_score,
+            team2_id=game.team2_id,
+            team2_name=game.team2.name if game.team2 else None,
+            team2_score=game.team2_score,
+            winning_team_id=game.winning_team_id,
+            winning_team_name=game.winning_team.name if game.winning_team else None,
+            version=game.version,
+            created_at=game.created_at,
+            updated_at=game.updated_at,
+            is_deleted=game.is_deleted,
+            deleted_at=game.deleted_at
+        ) for game in games
+    ]
 
 @router.get("/{game_id}", response_model=GameResponse)
 def get_game(game_id: int, include_deleted: bool = False, db: Session = Depends(get_db)):

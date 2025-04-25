@@ -6,40 +6,43 @@ from .base import BaseResponse, BaseModelSchema
 
 # create team
 
-class TeamCreate(BaseModel):
+class TeamBase(BaseModel):
     name: str
     season: int
     league: str
-    wins: int = 0
-    losses: int = 0
-    ties: int = 0
+    wins: Optional[int] = 0
+    losses: Optional[int] = 0
+    ties: Optional[int] = 0
+    is_active: Optional[int] = 1
 
+
+class TeamCreate(TeamBase):
+    pass
 
 
 #  fetch existing team
 
-class TeamOut(BaseModelSchema):
+class TeamOut(TeamBase, BaseModelSchema):
     id: int
-    name: str
-    season: int
-    league: str
-    wins: int
-    losses: int
-    ties: int
-    players: List['PlayerOut'] = []
+    display_name: str
 
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
+
+
+class TeamWithPlayers(TeamOut):
+    players: List["PlayerOut"] = []
+
+    class Config:
+        from_attributes = True
 
 
 # update team (wins/losses)
 
-class TeamUpdate(BaseModel):
+class TeamUpdate(TeamBase):
     name: Optional[str] = None
     season: Optional[int] = None
     league: Optional[str] = None
-    wins: Optional[int] = None
-    losses: Optional[int] = None
-    ties: Optional[int] = None
 
 
 class TeamResponse(BaseResponse):
@@ -48,3 +51,4 @@ class TeamResponse(BaseResponse):
 
 # Import PlayerOut after TeamOut is defined
 from schemas.players import PlayerOut
+TeamWithPlayers.model_rebuild()

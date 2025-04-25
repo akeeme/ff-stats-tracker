@@ -1,30 +1,30 @@
-from sqlalchemy import create_engine, text
-import os
-import sys
-
-# Add the parent directory to Python path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
-
-from database.database import engine, Base
+from sqlalchemy import create_engine
+from database.database import SQLALCHEMY_DATABASE_URL
+from models.base_model import BaseModel
+from models.team import Team
+from models.player import Player
+from models.game import Game
 from models.player_stats import PlayerStats
 
 def recreate_tables():
-    try:
-        # Drop the existing player_stats table if it exists
-        with engine.connect() as connection:
-            connection.execute(text("DROP TABLE IF EXISTS player_stats"))
-            connection.commit()
-            print("Dropped existing player_stats table")
-
-        # Create all tables
-        Base.metadata.create_all(bind=engine)
-        print("Successfully recreated player_stats table")
-        return True
-    except Exception as e:
-        print(f"Failed to recreate tables. Error: {e}")
-        return False
+    """Recreate all database tables"""
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+    
+    # Drop all tables
+    BaseModel.metadata.drop_all(bind=engine)
+    
+    # Create all tables
+    BaseModel.metadata.create_all(bind=engine)
+    
+    print("All tables have been recreated successfully!")
 
 if __name__ == "__main__":
-    recreate_tables() 
+    # Import all models to ensure they're registered with SQLAlchemy
+    from models import team, player, game, player_stats
+    
+    # Confirm with user
+    response = input("This will delete all existing data. Are you sure? (y/N): ")
+    if response.lower() == 'y':
+        recreate_tables()
+    else:
+        print("Operation cancelled.") 
