@@ -1,0 +1,60 @@
+CREATE TABLE IF NOT EXISTS team (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    league VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS player (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    team_id INTEGER,
+    position VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (team_id) REFERENCES team(id)
+);
+
+CREATE TABLE IF NOT EXISTS game (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    week INTEGER NOT NULL,
+    season INTEGER NOT NULL,
+    league VARCHAR(50),
+    team1_id INTEGER NOT NULL,
+    team2_id INTEGER NOT NULL,
+    team1_score INTEGER,
+    team2_score INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (team1_id) REFERENCES team(id),
+    FOREIGN KEY (team2_id) REFERENCES team(id)
+);
+
+CREATE TABLE IF NOT EXISTS player_stats (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    player_id INTEGER NOT NULL,
+    game_id INTEGER NOT NULL,
+    passing_tds INTEGER DEFAULT 0,
+    passes_completed INTEGER DEFAULT 0,
+    passes_attempted INTEGER DEFAULT 0,
+    interceptions_thrown INTEGER DEFAULT 0,
+    receptions INTEGER DEFAULT 0,
+    targets INTEGER DEFAULT 0,
+    receiving_tds INTEGER DEFAULT 0,
+    drops INTEGER DEFAULT 0,
+    first_downs INTEGER DEFAULT 0,
+    rushing_tds INTEGER DEFAULT 0,
+    rush_attempts INTEGER DEFAULT 0,
+    flag_pulls INTEGER DEFAULT 0,
+    interceptions INTEGER DEFAULT 0,
+    pass_breakups INTEGER DEFAULT 0,
+    def_td INTEGER DEFAULT 0,
+    version INTEGER DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    deleted_at TIMESTAMP,
+    FOREIGN KEY (player_id) REFERENCES player(id),
+    FOREIGN KEY (game_id) REFERENCES game(id)
+); 

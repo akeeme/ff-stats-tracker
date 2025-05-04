@@ -435,67 +435,31 @@ def stat_entry():
                         )
                         
                         # Stats input
-                        cols = st.columns(5)
+                        cols = st.columns(4)
                         
-                        # Pass Yards
-                        with cols[0]:
-                            st.markdown("**Pass Yards**")
-                            if st.button("-", key=f"qb_yards_minus_{i}"):
-                                current = st.session_state.get(f"qb_pass_yards_{i}", 0)
-                                if current > 0:
-                                    st.session_state[f"qb_pass_yards_{i}"] = current - 1
-                            st.number_input("", min_value=0, key=f"qb_pass_yards_{i}", label_visibility="collapsed")
-                            if st.button("+", key=f"qb_yards_plus_{i}"):
-                                current = st.session_state.get(f"qb_pass_yards_{i}", 0)
-                                st.session_state[f"qb_pass_yards_{i}"] = current + 1
                         
                         # Pass TDs
-                        with cols[1]:
+                        with cols[0]:
                             st.markdown("**Pass TDs**")
-                            if st.button("-", key=f"qb_tds_minus_{i}"):
-                                current = st.session_state.get(f"qb_pass_tds_{i}", 0)
-                                if current > 0:
-                                    st.session_state[f"qb_pass_tds_{i}"] = current - 1
                             st.number_input("", min_value=0, key=f"qb_pass_tds_{i}", label_visibility="collapsed")
-                            if st.button("+", key=f"qb_tds_plus_{i}"):
-                                current = st.session_state.get(f"qb_pass_tds_{i}", 0)
-                                st.session_state[f"qb_pass_tds_{i}"] = current + 1
                         
                         # Completions
-                        with cols[2]:
+                        with cols[1]:
                             st.markdown("**Completions**")
-                            if st.button("-", key=f"qb_comp_minus_{i}"):
-                                current = st.session_state.get(f"qb_completions_{i}", 0)
-                                if current > 0:
-                                    st.session_state[f"qb_completions_{i}"] = current - 1
                             st.number_input("", min_value=0, key=f"qb_completions_{i}", label_visibility="collapsed")
-                            if st.button("+", key=f"qb_comp_plus_{i}"):
-                                current = st.session_state.get(f"qb_completions_{i}", 0)
-                                st.session_state[f"qb_completions_{i}"] = current + 1
+
                         
                         # Attempts
-                        with cols[3]:
+                        with cols[2]:
                             st.markdown("**Attempts**")
-                            if st.button("-", key=f"qb_att_minus_{i}"):
-                                current = st.session_state.get(f"qb_attempts_{i}", 0)
-                                if current > 0:
-                                    st.session_state[f"qb_attempts_{i}"] = current - 1
                             st.number_input("", min_value=0, key=f"qb_attempts_{i}", label_visibility="collapsed")
-                            if st.button("+", key=f"qb_att_plus_{i}"):
-                                current = st.session_state.get(f"qb_attempts_{i}", 0)
-                                st.session_state[f"qb_attempts_{i}"] = current + 1
+                            
                         
                         # INTs
-                        with cols[4]:
+                        with cols[3]:
                             st.markdown("**INTs**")
-                            if st.button("-", key=f"qb_int_minus_{i}"):
-                                current = st.session_state.get(f"qb_ints_{i}", 0)
-                                if current > 0:
-                                    st.session_state[f"qb_ints_{i}"] = current - 1
                             st.number_input("", min_value=0, key=f"qb_ints_{i}", label_visibility="collapsed")
-                            if st.button("+", key=f"qb_int_plus_{i}"):
-                                current = st.session_state.get(f"qb_ints_{i}", 0)
-                                st.session_state[f"qb_ints_{i}"] = current + 1
+                            
                         
                         if st.button("Log QB Stats", key=f"log_qb_{i}", use_container_width=True):
                             qb_id = next((p["id"] for p in players if p["name"] == qb_player), None)
@@ -506,15 +470,10 @@ def stat_entry():
                                         json={
                                             "player_id": qb_id,
                                             "game_id": game_options[selected_game],
-                                            "passing_yards": st.session_state.get(f"qb_pass_yards_{i}", 0),
                                             "passing_tds": st.session_state.get(f"qb_pass_tds_{i}", 0),
                                             "passes_completed": st.session_state.get(f"qb_completions_{i}", 0),
                                             "passes_attempted": st.session_state.get(f"qb_attempts_{i}", 0),
                                             "interceptions_thrown": st.session_state.get(f"qb_ints_{i}", 0),
-                                            "receptions": 0, "targets": 0, "receiving_yards": 0,
-                                            "receiving_tds": 0, "drops": 0, "first_downs": 0,
-                                            "rushing_yards": 0, "rushing_tds": 0, "rush_attempts": 0,
-                                            "flag_pulls": 0, "interceptions": 0, "pass_breakups": 0, "def_td": 0
                                         }
                                     )
                                     if response.status_code == 200:
@@ -525,13 +484,307 @@ def stat_entry():
                                     st.error(f"Error connecting to API: {str(e)}")
                         st.markdown("---")
 
-            # Similar pattern for other tabs...
-            # (I'll show just the QB tab for now to ensure it works, then we can add the others)
-
+            with rec_tab:
+                st.subheader("Receiver Stats Entry")
+                col1, col2 = st.columns([1, 10])
+                with col1:
+                    if st.button("➕", key="add_rec"):
+                        new_index = max(st.session_state.rec_forms) + 1 if st.session_state.rec_forms else 0
+                        st.session_state.rec_forms.append(new_index)
+                for i in st.session_state.rec_forms:
+                    with st.container():
+                        col1, col2 = st.columns([6, 1])
+                        with col1:
+                            st.markdown(f"**Receiver #{i+1}**")
+                        with col2:
+                            if st.button("🗑️", key=f"remove_rec_{i}"):
+                                st.session_state.rec_forms.remove(i)
+                                st.rerun()
+                        rec_player = st.selectbox(
+                            "Select Receiver",
+                            options=[player["name"] for player in players],
+                            key=f"rec_player_{i}"
+                        )
+                        cols = st.columns(4)
+                        # Receptions
+                        with cols[0]:
+                            st.markdown("**Receptions**")
+                            minus, num, plus = st.columns([1,2,1])
+                            with minus:
+                                if st.button("-", key=f"rec_receptions_minus_{i}"):
+                                    current = st.session_state.get(f"rec_receptions_{i}", 0)
+                                    if current > 0:
+                                        st.session_state[f"rec_receptions_{i}"] = current - 1
+                            with num:
+                                st.number_input("", min_value=0, key=f"rec_receptions_{i}", label_visibility="collapsed")
+                            with plus:
+                                if st.button("+", key=f"rec_receptions_plus_{i}"):
+                                    current = st.session_state.get(f"rec_receptions_{i}", 0)
+                                    st.session_state[f"rec_receptions_{i}"] = current + 1
+                        # Targets
+                        with cols[1]:
+                            st.markdown("**Targets**")
+                            minus, num, plus = st.columns([1,2,1])
+                            with minus:
+                                if st.button("-", key=f"rec_targets_minus_{i}"):
+                                    current = st.session_state.get(f"rec_targets_{i}", 0)
+                                    if current > 0:
+                                        st.session_state[f"rec_targets_{i}"] = current - 1
+                            with num:
+                                st.number_input("", min_value=0, key=f"rec_targets_{i}", label_visibility="collapsed")
+                            with plus:
+                                if st.button("+", key=f"rec_targets_plus_{i}"):
+                                    current = st.session_state.get(f"rec_targets_{i}", 0)
+                                    st.session_state[f"rec_targets_{i}"] = current + 1
+                        # Receiving TDs
+                        with cols[2]:
+                            st.markdown("**Receiving TDs**")
+                            minus, num, plus = st.columns([1,2,1])
+                            with minus:
+                                if st.button("-", key=f"rec_tds_minus_{i}"):
+                                    current = st.session_state.get(f"rec_tds_{i}", 0)
+                                    if current > 0:
+                                        st.session_state[f"rec_tds_{i}"] = current - 1
+                            with num:
+                                st.number_input("", min_value=0, key=f"rec_tds_{i}", label_visibility="collapsed")
+                            with plus:
+                                if st.button("+", key=f"rec_tds_plus_{i}"):
+                                    current = st.session_state.get(f"rec_tds_{i}", 0)
+                                    st.session_state[f"rec_tds_{i}"] = current + 1
+                        # Drops
+                        with cols[3]:
+                            st.markdown("**Drops**")
+                            minus, num, plus = st.columns([1,2,1])
+                            with minus:
+                                if st.button("-", key=f"rec_drops_minus_{i}"):
+                                    current = st.session_state.get(f"rec_drops_{i}", 0)
+                                    if current > 0:
+                                        st.session_state[f"rec_drops_{i}"] = current - 1
+                            with num:
+                                st.number_input("", min_value=0, key=f"rec_drops_{i}", label_visibility="collapsed")
+                            with plus:
+                                if st.button("+", key=f"rec_drops_plus_{i}"):
+                                    current = st.session_state.get(f"rec_drops_{i}", 0)
+                                    st.session_state[f"rec_drops_{i}"] = current + 1
+                        if st.button("Log Receiver Stats", key=f"log_rec_{i}", use_container_width=True):
+                            rec_id = next((p["id"] for p in players if p["name"] == rec_player), None)
+                            if rec_id:
+                                try:
+                                    response = requests.post(
+                                        f"{API_BASE_URL}/stats",
+                                        json={
+                                            "player_id": rec_id,
+                                            "game_id": game_options[selected_game],
+                                            "receptions": st.session_state.get(f"rec_receptions_{i}", 0),
+                                            "targets": st.session_state.get(f"rec_targets_{i}", 0),
+                                            "receiving_tds": st.session_state.get(f"rec_tds_{i}", 0),
+                                            "drops": st.session_state.get(f"rec_drops_{i}", 0),
+                                        }
+                                    )
+                                    if response.status_code == 200:
+                                        st.success(f"Receiver Stats logged for {rec_player}!")
+                                    else:
+                                        st.error("Failed to log receiver stats")
+                                except requests.RequestException as e:
+                                    st.error(f"Error connecting to API: {str(e)}")
+                        st.markdown("---")
+            with rush_tab:
+                st.subheader("Rushing Stats Entry")
+                col1, col2 = st.columns([1, 10])
+                with col1:
+                    if st.button("➕", key="add_rush"):
+                        new_index = max(st.session_state.rush_forms) + 1 if st.session_state.rush_forms else 0
+                        st.session_state.rush_forms.append(new_index)
+                for i in st.session_state.rush_forms:
+                    with st.container():
+                        col1, col2 = st.columns([6, 1])
+                        with col1:
+                            st.markdown(f"**Rusher #{i+1}**")
+                        with col2:
+                            if st.button("🗑️", key=f"remove_rush_{i}"):
+                                st.session_state.rush_forms.remove(i)
+                                st.rerun()
+                        rush_player = st.selectbox(
+                            "Select Rusher",
+                            options=[player["name"] for player in players],
+                            key=f"rush_player_{i}"
+                        )
+                        cols = st.columns(3)
+                        # Rush Attempts
+                        with cols[0]:
+                            st.markdown("**Attempts**")
+                            minus, num, plus = st.columns([1,2,1])
+                            with minus:
+                                if st.button("-", key=f"rush_attempts_minus_{i}"):
+                                    current = st.session_state.get(f"rush_attempts_{i}", 0)
+                                    if current > 0:
+                                        st.session_state[f"rush_attempts_{i}"] = current - 1
+                            with num:
+                                st.number_input("", min_value=0, key=f"rush_attempts_{i}", label_visibility="collapsed")
+                            with plus:
+                                if st.button("+", key=f"rush_attempts_plus_{i}"):
+                                    current = st.session_state.get(f"rush_attempts_{i}", 0)
+                                    st.session_state[f"rush_attempts_{i}"] = current + 1
+                        # Rushing TDs
+                        with cols[1]:
+                            st.markdown("**Rushing TDs**")
+                            minus, num, plus = st.columns([1,2,1])
+                            with minus:
+                                if st.button("-", key=f"rush_tds_minus_{i}"):
+                                    current = st.session_state.get(f"rush_tds_{i}", 0)
+                                    if current > 0:
+                                        st.session_state[f"rush_tds_{i}"] = current - 1
+                            with num:
+                                st.number_input("", min_value=0, key=f"rush_tds_{i}", label_visibility="collapsed")
+                            with plus:
+                                if st.button("+", key=f"rush_tds_plus_{i}"):
+                                    current = st.session_state.get(f"rush_tds_{i}", 0)
+                                    st.session_state[f"rush_tds_{i}"] = current + 1
+                        # First Downs
+                        with cols[2]:
+                            st.markdown("**First Downs**")
+                            minus, num, plus = st.columns([1,2,1])
+                            with minus:
+                                if st.button("-", key=f"rush_first_downs_minus_{i}"):
+                                    current = st.session_state.get(f"rush_first_downs_{i}", 0)
+                                    if current > 0:
+                                        st.session_state[f"rush_first_downs_{i}"] = current - 1
+                            with num:
+                                st.number_input("", min_value=0, key=f"rush_first_downs_{i}", label_visibility="collapsed")
+                            with plus:
+                                if st.button("+", key=f"rush_first_downs_plus_{i}"):
+                                    current = st.session_state.get(f"rush_first_downs_{i}", 0)
+                                    st.session_state[f"rush_first_downs_{i}"] = current + 1
+                        if st.button("Log Rushing Stats", key=f"log_rush_{i}", use_container_width=True):
+                            rush_id = next((p["id"] for p in players if p["name"] == rush_player), None)
+                            if rush_id:
+                                try:
+                                    response = requests.post(
+                                        f"{API_BASE_URL}/stats",
+                                        json={
+                                            "player_id": rush_id,
+                                            "game_id": game_options[selected_game],
+                                            "rush_attempts": st.session_state.get(f"rush_attempts_{i}", 0),
+                                            "rushing_tds": st.session_state.get(f"rush_tds_{i}", 0),
+                                            "first_downs": st.session_state.get(f"rush_first_downs_{i}", 0),
+                                        }
+                                    )
+                                    if response.status_code == 200:
+                                        st.success(f"Rushing Stats logged for {rush_player}!")
+                                    else:
+                                        st.error("Failed to log rushing stats")
+                                except requests.RequestException as e:
+                                    st.error(f"Error connecting to API: {str(e)}")
+                        st.markdown("---")
+            with def_tab:
+                st.subheader("Defense Stats Entry")
+                col1, col2 = st.columns([1, 10])
+                with col1:
+                    if st.button("➕", key="add_def"):
+                        new_index = max(st.session_state.def_forms) + 1 if st.session_state.def_forms else 0
+                        st.session_state.def_forms.append(new_index)
+                for i in st.session_state.def_forms:
+                    with st.container():
+                        col1, col2 = st.columns([6, 1])
+                        with col1:
+                            st.markdown(f"**Defender #{i+1}**")
+                        with col2:
+                            if st.button("🗑️", key=f"remove_def_{i}"):
+                                st.session_state.def_forms.remove(i)
+                                st.rerun()
+                        def_player = st.selectbox(
+                            "Select Defender",
+                            options=[player["name"] for player in players],
+                            key=f"def_player_{i}"
+                        )
+                        cols = st.columns(4)
+                        # Flag Pulls
+                        with cols[0]:
+                            st.markdown("**Flag Pulls**")
+                            minus, num, plus = st.columns([1,2,1])
+                            with minus:
+                                if st.button("-", key=f"def_flag_pulls_minus_{i}"):
+                                    current = st.session_state.get(f"def_flag_pulls_{i}", 0)
+                                    if current > 0:
+                                        st.session_state[f"def_flag_pulls_{i}"] = current - 1
+                            with num:
+                                st.number_input("", min_value=0, key=f"def_flag_pulls_{i}", label_visibility="collapsed")
+                            with plus:
+                                if st.button("+", key=f"def_flag_pulls_plus_{i}"):
+                                    current = st.session_state.get(f"def_flag_pulls_{i}", 0)
+                                    st.session_state[f"def_flag_pulls_{i}"] = current + 1
+                        # Interceptions
+                        with cols[1]:
+                            st.markdown("**Interceptions**")
+                            minus, num, plus = st.columns([1,2,1])
+                            with minus:
+                                if st.button("-", key=f"def_interceptions_minus_{i}"):
+                                    current = st.session_state.get(f"def_interceptions_{i}", 0)
+                                    if current > 0:
+                                        st.session_state[f"def_interceptions_{i}"] = current - 1
+                            with num:
+                                st.number_input("", min_value=0, key=f"def_interceptions_{i}", label_visibility="collapsed")
+                            with plus:
+                                if st.button("+", key=f"def_interceptions_plus_{i}"):
+                                    current = st.session_state.get(f"def_interceptions_{i}", 0)
+                                    st.session_state[f"def_interceptions_{i}"] = current + 1
+                        # Pass Breakups
+                        with cols[2]:
+                            st.markdown("**Pass Breakups**")
+                            minus, num, plus = st.columns([1,2,1])
+                            with minus:
+                                if st.button("-", key=f"def_pass_breakups_minus_{i}"):
+                                    current = st.session_state.get(f"def_pass_breakups_{i}", 0)
+                                    if current > 0:
+                                        st.session_state[f"def_pass_breakups_{i}"] = current - 1
+                            with num:
+                                st.number_input("", min_value=0, key=f"def_pass_breakups_{i}", label_visibility="collapsed")
+                            with plus:
+                                if st.button("+", key=f"def_pass_breakups_plus_{i}"):
+                                    current = st.session_state.get(f"def_pass_breakups_{i}", 0)
+                                    st.session_state[f"def_pass_breakups_{i}"] = current + 1
+                        # Defensive TDs
+                        with cols[3]:
+                            st.markdown("**Def TDs**")
+                            minus, num, plus = st.columns([1,2,1])
+                            with minus:
+                                if st.button("-", key=f"def_td_minus_{i}"):
+                                    current = st.session_state.get(f"def_td_{i}", 0)
+                                    if current > 0:
+                                        st.session_state[f"def_td_{i}"] = current - 1
+                            with num:
+                                st.number_input("", min_value=0, key=f"def_td_{i}", label_visibility="collapsed")
+                            with plus:
+                                if st.button("+", key=f"def_td_plus_{i}"):
+                                    current = st.session_state.get(f"def_td_{i}", 0)
+                                    st.session_state[f"def_td_{i}"] = current + 1
+                        if st.button("Log Defense Stats", key=f"log_def_{i}", use_container_width=True):
+                            def_id = next((p["id"] for p in players if p["name"] == def_player), None)
+                            if def_id:
+                                try:
+                                    response = requests.post(
+                                        f"{API_BASE_URL}/stats",
+                                        json={
+                                            "player_id": def_id,
+                                            "game_id": game_options[selected_game],
+                                            "flag_pulls": st.session_state.get(f"def_flag_pulls_{i}", 0),
+                                            "interceptions": st.session_state.get(f"def_interceptions_{i}", 0),
+                                            "pass_breakups": st.session_state.get(f"def_pass_breakups_{i}", 0),
+                                            "def_td": st.session_state.get(f"def_td_{i}", 0),
+                                        }
+                                    )
+                                    if response.status_code == 200:
+                                        st.success(f"Defense Stats logged for {def_player}!")
+                                    else:
+                                        st.error("Failed to log defense stats")
+                                except requests.RequestException as e:
+                                    st.error(f"Error connecting to API: {str(e)}")
+                        st.markdown("---")
         else:
             st.warning("No players available")
     else:
         st.warning("No games available")
+
 
 def standings_management():
     """Handle team standings display"""
@@ -539,7 +792,6 @@ def standings_management():
     
     teams = fetch_teams()
     if teams:
-        # Add custom CSS to make tables larger and more readable
         st.markdown("""
             <style>
                 .standings-header {
