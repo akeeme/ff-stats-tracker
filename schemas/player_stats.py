@@ -17,6 +17,7 @@ class PlayerStatsCreate(BaseModel):
     passes_completed: int = 0
     passes_attempted: int = 0
     interceptions_thrown: int = 0
+    qb_rushing_tds: int = 0
     
     # wr
     receptions: int = 0
@@ -34,6 +35,28 @@ class PlayerStatsCreate(BaseModel):
     interceptions: int = 0
     pass_breakups: int = 0
     def_td: int = 0
+    sacks: int = 0
+
+class PlayerStatsCreateById(BaseModel):
+    player_id: int
+    game_id: int
+    passing_tds: int = 0
+    passes_completed: int = 0
+    passes_attempted: int = 0
+    interceptions_thrown: int = 0
+    qb_rushing_tds: int = 0
+    receptions: int = 0
+    targets: int = 0
+    receiving_tds: int = 0
+    drops: int = 0
+    first_downs: int = 0
+    rushing_tds: int = 0
+    rush_attempts: int = 0
+    flag_pulls: int = 0
+    interceptions: int = 0
+    pass_breakups: int = 0
+    def_td: int = 0
+    sacks: int = 0
 
 # fetching existing stats (from db)
 class PlayerStatsOut(BaseModelSchema):
@@ -52,6 +75,7 @@ class PlayerStatsOut(BaseModelSchema):
     passes_completed: int
     passes_attempted: int
     interceptions_thrown: int
+    qb_rushing_tds: int
     
     # wr
     receptions: int
@@ -69,6 +93,7 @@ class PlayerStatsOut(BaseModelSchema):
     interceptions: int
     pass_breakups: int
     def_td: int
+    sacks: int
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -78,6 +103,7 @@ class PlayerStatsUpdate(BaseModel):
     passes_completed: Optional[int] = None
     passes_attempted: Optional[int] = None
     interceptions_thrown: Optional[int] = None
+    qb_rushing_tds: Optional[int] = None
     
     # wr
     receptions: Optional[int] = None
@@ -95,6 +121,7 @@ class PlayerStatsUpdate(BaseModel):
     interceptions: Optional[int] = None
     pass_breakups: Optional[int] = None
     def_td: Optional[int] = None
+    sacks: Optional[int] = None
 
 class PlayerStatsResponse(BaseResponse):
     data: Optional[PlayerStatsOut] = None

@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS player_stats (
     passes_completed INTEGER DEFAULT 0,
     passes_attempted INTEGER DEFAULT 0,
     interceptions_thrown INTEGER DEFAULT 0,
+    qb_rushing_tds INTEGER DEFAULT 0,
     receptions INTEGER DEFAULT 0,
     targets INTEGER DEFAULT 0,
     receiving_tds INTEGER DEFAULT 0,

@@ -13,3 +13,5 @@ __pycache__
 *.json
 *.yaml
 *.yml
+.stats-venv
+*.venv

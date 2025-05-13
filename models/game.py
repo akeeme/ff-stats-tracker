@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from models.base_model import BaseModel
 
@@ -14,6 +14,7 @@ class Game(BaseModel):
     team2_id = Column(Integer, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
     team2_score = Column(Integer, default=0)
     winning_team_id = Column(Integer, ForeignKey("teams.id", ondelete="SET NULL"), nullable=True)
+    completed = Column(Boolean, default=False)
     
     # Define relationships
     team1 = relationship("Team", foreign_keys=[team1_id])
