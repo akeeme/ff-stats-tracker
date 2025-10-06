@@ -16,6 +16,7 @@ class PlayerStats(BaseModel):
     passes_completed = Column(Integer, default=0)
     passes_attempted = Column(Integer, default=0)
     interceptions_thrown = Column(Integer, default=0)
+    qb_rushing_tds = Column(Integer, default=0)
     
     # wr
     receptions = Column(Integer, default=0)
@@ -33,6 +34,7 @@ class PlayerStats(BaseModel):
     interceptions = Column(Integer, default=0)
     pass_breakups = Column(Integer, default=0)
     def_td = Column(Integer, default=0)
+    sacks = Column(Integer, default=0)
     
     # Define relationships
     player = relationship("Player", back_populates="stats")

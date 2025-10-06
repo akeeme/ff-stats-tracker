@@ -2,15 +2,22 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, sessionmaker
 import os
 from dotenv import load_dotenv
+import os
 
-# Load environment variables
 load_dotenv()
+
+# dll_path = os.getenv("ibm_db_dll_path")
+# if dll_path:
+#     os.add_dll_directory(dll_path)
+
+# import ibm_db
 
 # Create a single Base instance that all models will use
 Base = declarative_base()
 
 def connect():
     db_type = os.getenv('DB_TYPE', 'sqlite').lower()
+    print(f"DB_TYPE: {db_type}")
     if db_type == 'sqlite':
         sqlite_path = os.getenv('SQLITE_PATH', './db.sqlite3')
         uri = f"{sqlite_path}"

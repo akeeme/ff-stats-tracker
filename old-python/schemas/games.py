@@ -32,6 +32,7 @@ class GameOut(BaseModelSchema):
     team2_score: int
     winning_team_id: Optional[int] = None
     winning_team_name: Optional[str] = None
+    completed: bool = False
     
     model_config = ConfigDict(from_attributes=True)
         

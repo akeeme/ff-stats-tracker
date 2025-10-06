@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from datetime import datetime
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 
 from database.database import get_db
 from models.game import Game
@@ -25,6 +25,35 @@ def create_game(game: GameCreate, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail=f"Team '{game.team1_name}' not found")
         if not team2:
             raise HTTPException(status_code=404, detail=f"Team '{game.team2_name}' not found")
+            
+        # Check if either team already has a game in this week
+        existing_game = db.query(Game).filter(
+            and_(
+                Game.season == game.season,
+                Game.week == game.week,
+                Game.is_deleted == False,
+                or_(
+                    Game.team1_id == team1.id,
+                    Game.team1_id == team2.id,
+                    Game.team2_id == team1.id,
+                    Game.team2_id == team2.id
+                )
+            )
+        ).first()
+        
+        if existing_game:
+            # Determine which team(s) already have a game
+            teams_with_games = []
+            if existing_game.team1_id in [team1.id, team2.id]:
+                teams_with_games.append(team1.name if existing_game.team1_id == team1.id else team2.name)
+            if existing_game.team2_id in [team1.id, team2.id]:
+                teams_with_games.append(team1.name if existing_game.team2_id == team1.id else team2.name)
+            
+            teams_str = " and ".join(teams_with_games)
+            raise HTTPException(
+                status_code=400,
+                detail=f"{teams_str} already {'has' if len(teams_with_games) == 1 else 'have'} a game in week {game.week}"
+            )
         
         # Determine winning team
         winning_team = None
@@ -125,6 +154,7 @@ def get_games(skip: int = 0, limit: int = 100, include_deleted: bool = False, db
             team2_score=game.team2_score,
             winning_team_id=game.winning_team_id,
             winning_team_name=game.winning_team.name if game.winning_team else None,
+            completed=game.completed,
             version=game.version,
             created_at=game.created_at,
             updated_at=game.updated_at,
@@ -239,4 +269,13 @@ def delete_game(game_id: int, version: int, db: Session = Depends(get_db)):
     return GameResponse(
         success=True,
         message="Game deleted successfully"
-    ) 
+    )
+
+@router.put("/{game_id}/complete")
+def mark_game_complete(game_id: int, db: Session = Depends(get_db)):
+    game = db.query(Game).filter(Game.id == game_id).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    game.completed = True
+    db.commit()
+    return {"success": True, "message": "Game marked as complete"} 

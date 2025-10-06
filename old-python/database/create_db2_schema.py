@@ -1,8 +1,14 @@
-import ibm_db
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# dll_path = os.getenv("ibm_db_dll_path")
+# if dll_path:
+#     os.add_dll_directory(dll_path)
+
+# import ibm_db
+
 
 def get_db2_conn():
     db2_user = os.getenv('db2_user')
