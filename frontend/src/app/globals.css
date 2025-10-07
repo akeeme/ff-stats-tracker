@@ -48,25 +48,42 @@
   }
 
   .dark {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 4%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 4%;
-    --popover-foreground: 0 0% 98%;
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
     --primary: 0 100% 60%;
-    --primary-foreground: 0 0% 4%;
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 98%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
     --ring: 0 100% 60%;
+    
+    /* Custom dark mode variables */
+    --text-primary: 210 40% 98%;
+    --text-secondary: 215 20% 65%;
+    --text-light: 217 20% 50%;
+    --surface: 217 33% 17%;
+    --border-light: 217 33% 20%;
+  }
+  
+  /* Force dark mode text colors */
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4,
+  .dark h5,
+  .dark h6 {
+    color: rgb(248 250 252) !important;
   }
 }
 
@@ -95,25 +112,25 @@
   }
 
   .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-[hsl(var(--text-primary))] font-semibold px-6 py-3 rounded-xl border border-[hsl(var(--border))] transition-all duration-200 shadow-sm hover:shadow-md;
+    @apply bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-semibold px-6 py-3 rounded-xl border border-gray-200 dark:border-gray-600 transition-all duration-200 shadow-sm hover:shadow-md;
   }
 
   .btn-ghost {
-    @apply bg-transparent hover:bg-gray-100 text-[hsl(var(--text-primary))] font-medium px-4 py-2 rounded-lg transition-all duration-200;
+    @apply bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium px-4 py-2 rounded-lg transition-all duration-200;
   }
 
   /* Modern input styles */
   .input-modern {
-    @apply w-full px-4 py-3 rounded-xl border border-[hsl(var(--border-light))] focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20 transition-all duration-200 bg-white text-[hsl(var(--text-primary))] placeholder:text-[hsl(var(--text-light))] font-medium;
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary))]/20 transition-all duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 font-medium;
   }
 
   /* Modern card styles */
   .card-modern {
-    @apply bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-[hsl(var(--border-light))] overflow-hidden;
+    @apply bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-200 dark:border-gray-700 overflow-hidden;
   }
 
   .card-bubbly {
-    @apply bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 border border-[hsl(var(--border-light))] overflow-hidden transform hover:-translate-y-1;
+    @apply bg-white dark:bg-gray-800 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700 overflow-hidden transform hover:-translate-y-1;
   }
 
   /* Modern tab styles */
@@ -126,7 +143,7 @@
   }
 
   .tab-inactive {
-    @apply bg-white text-[hsl(var(--text-secondary))] hover:bg-gray-50 hover:text-[hsl(var(--text-primary))] border border-[hsl(var(--border-light))];
+    @apply bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-600;
   }
 
   /* Gradient backgrounds */

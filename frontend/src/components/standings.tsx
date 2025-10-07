@@ -1,16 +1,13 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { api, Team } from '@/lib/api'
+import { Team } from '@/lib/api'
 import { Trophy, Medal, Award } from 'lucide-react'
 import { calculateWinPercentage, formatWinPercentage } from '@/lib/utils'
+import { useTeamsWithRealtime } from '@/hooks'
 
 export function Standings() {
-  const { data: teams = [], isLoading } = useQuery({
-    queryKey: ['teams'],
-    queryFn: api.getTeams,
-  })
+  const { data: teams = [], isLoading } = useTeamsWithRealtime()
 
   if (isLoading) {
     return <div>Loading standings...</div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,20 +9,14 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api, Game, Player } from '@/lib/api'
 import { Plus, Minus, Target, Zap, Shield } from 'lucide-react'
+import { useGamesWithRealtime, usePlayersWithRealtime } from '@/hooks'
 
 export function StatEntry() {
   const queryClient = useQueryClient()
 
-  // Queries
-  const { data: games = [] } = useQuery({
-    queryKey: ['games'],
-    queryFn: api.getGames,
-  })
-
-  const { data: players = [] } = useQuery({
-    queryKey: ['players'],
-    queryFn: api.getPlayers,
-  })
+  // Queries with realtime updates
+  const { data: games = [] } = useGamesWithRealtime()
+  const { data: players = [] } = usePlayersWithRealtime()
 
   // Mutations
   const createStatsMutation = useMutation({

@@ -1,27 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api, Game, Team } from '@/lib/api'
 import { Plus, Calendar, Trophy, Users } from 'lucide-react'
+import { useTeamsWithRealtime, useGamesWithRealtime } from '@/hooks'
 
 export function GameManagement() {
   const queryClient = useQueryClient()
 
-  // Queries
-  const { data: teams = [] } = useQuery({
-    queryKey: ['teams'],
-    queryFn: api.getTeams,
-  })
-
-  const { data: games = [] } = useQuery({
-    queryKey: ['games'],
-    queryFn: api.getGames,
-  })
+  // Queries with realtime updates
+  const { data: teams = [] } = useTeamsWithRealtime()
+  const { data: games = [] } = useGamesWithRealtime()
 
   // Mutations
   const createGameMutation = useMutation({
