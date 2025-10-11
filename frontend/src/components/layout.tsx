@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Moon, Sun, Shield, Trophy } from 'lucide-react'
+import { Moon, Sun, Shield } from 'lucide-react'
 import { useTheme } from '@/providers/theme-provider'
 import { useAdmin } from '@/hooks'
 
@@ -34,13 +34,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <Link href="/" className="flex items-center space-x-4 group">
               <div className="relative w-14 h-14 bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/50 group-hover:shadow-red-500/70 transition-all duration-300 group-hover:scale-105 group-hover:rotate-3">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl"></div>
-                <Trophy className="h-7 w-7 text-white relative z-10" strokeWidth={2.5} />
+                <span className="text-4xl relative z-10" role="img" aria-label="rhino">🦏</span>
               </div>
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">
-                  Flag Football Stats
+                  Rhinos Flag Football Stats
                 </h1>
-                <p className="text-gray-400 text-sm">Rhinos Team performance</p>
+                <p className="text-gray-400 text-sm">Rhinos Team performance made by keem!</p>
               </div>
             </Link>
             <div className="flex items-center space-x-3">
