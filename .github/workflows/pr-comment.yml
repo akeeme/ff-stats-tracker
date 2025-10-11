@@ -1,0 +1,17 @@
+name: PR Preview Comment
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment preview URLs
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: |
+            🚀 Preview is building in Coolify.
+
+            - Web: https://pr-${{ github.event.number }}.stats.keemlab.com
+            - API: https://pr-${{ github.event.number }}.api.keemlab.com
