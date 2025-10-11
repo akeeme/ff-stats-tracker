@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,21 +8,59 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api, Game, Player } from '@/lib/api'
-import { Plus, Minus, Target, Zap, Shield } from 'lucide-react'
+import { Plus, Minus, Target, Zap, Shield, CheckCircle2, XCircle } from 'lucide-react'
 import { useGamesWithRealtime, usePlayersWithRealtime } from '@/hooks'
+
+type StatSubmission = {
+  player_name: string
+  game_week: number
+  game_season: number
+  league: string
+  team1_name: string
+  team2_name: string
+  passing_tds?: number
+  passes_completed?: number
+  passes_attempted?: number
+  interceptions_thrown?: number
+  receptions?: number
+  targets?: number
+  receiving_tds?: number
+  drops?: number
+  first_downs?: number
+  rushing_tds?: number
+  rush_attempts?: number
+  flag_pulls?: number
+  interceptions?: number
+  pass_breakups?: number
+  def_td?: number
+}
 
 export function StatEntry() {
   const queryClient = useQueryClient()
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   // Queries with realtime updates
   const { data: games = [] } = useGamesWithRealtime()
   const { data: players = [] } = usePlayersWithRealtime()
 
+  // Auto-hide toast after 3 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [toast])
+
   // Mutations
   const createStatsMutation = useMutation({
     mutationFn: api.createPlayerStats,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['stats'] })
+      const message = data.message || 'Stats logged successfully!'
+      setToast({ message, type: 'success' })
+    },
+    onError: (error: Error) => {
+      setToast({ message: error.message || 'Failed to log stats', type: 'error' })
     },
   })
 
@@ -32,6 +70,24 @@ export function StatEntry() {
 
   return (
     <div className="space-y-8">
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg animate-in slide-in-from-top-5 ${
+            toast.type === 'success'
+              ? 'bg-green-500 text-white'
+              : 'bg-red-500 text-white'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 className="h-5 w-5" />
+          ) : (
+            <XCircle className="h-5 w-5" />
+          )}
+          <span className="font-medium">{toast.message}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Stat Entry</h2>
@@ -133,7 +189,7 @@ function QBStatsForm({
 }: { 
   game: Game
   players: Player[]
-  onSubmit: (stats: any) => void 
+  onSubmit: (stats: StatSubmission) => void 
 }) {
   const [formData, setFormData] = useState({
     player_name: '',
@@ -327,7 +383,7 @@ function ReceiverStatsForm({
 }: { 
   game: Game
   players: Player[]
-  onSubmit: (stats: any) => void 
+  onSubmit: (stats: StatSubmission) => void 
 }) {
   const [formData, setFormData] = useState({
     player_name: '',
@@ -444,7 +500,7 @@ function RushingStatsForm({
 }: { 
   game: Game
   players: Player[]
-  onSubmit: (stats: any) => void 
+  onSubmit: (stats: StatSubmission) => void 
 }) {
   const [formData, setFormData] = useState({
     player_name: '',
@@ -555,7 +611,7 @@ function DefenseStatsForm({
 }: { 
   game: Game
   players: Player[]
-  onSubmit: (stats: any) => void 
+  onSubmit: (stats: StatSubmission) => void 
 }) {
   const [formData, setFormData] = useState({
     player_name: '',
