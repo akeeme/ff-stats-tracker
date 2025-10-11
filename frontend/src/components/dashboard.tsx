@@ -50,7 +50,7 @@ export function Dashboard() {
       {/* Header */}
       <div>
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Dashboard</h2>
-        <p className="text-gray-600 dark:text-gray-400">Overview of your league stats and performance</p>
+        <p className="text-gray-600 dark:text-gray-400">Overview of Rhinos league stats and performance</p>
       </div>
 
       {/* Stats Showcase */}

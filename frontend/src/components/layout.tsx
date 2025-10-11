@@ -40,7 +40,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">
                   Flag Football Stats
                 </h1>
-                <p className="text-gray-400 text-sm">Track your team&apos;s performance</p>
+                <p className="text-gray-400 text-sm">Rhinos Team performance</p>
               </div>
             </Link>
             <div className="flex items-center space-x-3">
