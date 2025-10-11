@@ -9,11 +9,15 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api, Team, Player } from '@/lib/api'
 import { Plus, Users, Trophy, Edit, Trash2 } from 'lucide-react'
-import { useTeamsWithRealtime, usePlayersWithRealtime } from '@/hooks'
+import { useTeamsWithRealtime, usePlayersWithRealtime, useAdmin } from '@/hooks'
 
 export function TeamManagement() {
   const queryClient = useQueryClient()
   const [selectedSeason, setSelectedSeason] = useState<number>(1)
+  const { isAdmin, isLoading: adminLoading } = useAdmin()
+
+  // Debug: Log admin status - THIS RUNS ON EVERY RENDER
+  console.log('🔴 TeamManagement RENDER - isAdmin:', isAdmin, 'adminLoading:', adminLoading, 'typeof isAdmin:', typeof isAdmin)
 
   // Queries with realtime updates
   const { data: teams = [], isLoading: teamsLoading } = useTeamsWithRealtime()
@@ -55,8 +59,8 @@ export function TeamManagement() {
   const currentSeasonTeams = teams ? teams.filter(team => team.season === selectedSeason) : []
   const currentSeasonPlayers = players ? players.filter(player => player.season === selectedSeason) : []
 
-  // Show loading state
-  if (teamsLoading || playersLoading) {
+  // Show loading state - wait for admin status to be determined
+  if (teamsLoading || playersLoading || adminLoading) {
     return (
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -69,7 +73,7 @@ export function TeamManagement() {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-400">Loading teams and players...</p>
+              <p className="text-gray-600 dark:text-gray-400">Loading...</p>
             </div>
           </div>
         </div>
@@ -77,13 +81,20 @@ export function TeamManagement() {
     )
   }
 
+  // Debug: Force log after loading completes
+  console.log('RENDERING TeamManagement - isAdmin:', isAdmin, 'Type:', typeof isAdmin)
+
   return (
     <div className="space-y-8">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Team & Player Management</h2>
-          <p className="text-gray-600 dark:text-gray-400">Manage your teams and players for each season</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            {isAdmin ? 'Team Management' : 'Teams'}
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            {isAdmin ? 'Manage your teams for each season' : 'View teams for each season'}
+          </p>
         </div>
         <div className="flex items-center space-x-3">
           <Label htmlFor="season-select" className="text-sm font-medium text-gray-700 dark:text-gray-300">Season:</Label>
@@ -102,17 +113,7 @@ export function TeamManagement() {
 
       {/* Teams Section */}
       <div className="space-y-8">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center">
-            <Trophy className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Teams</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Manage your teams for Season {selectedSeason}</p>
-          </div>
-        </div>
-
-        <CreateTeamForm onSubmit={(team) => createTeamMutation.mutate(team)} />
+        {isAdmin === true && <CreateTeamForm onSubmit={(team) => createTeamMutation.mutate(team)} />}
         
         {currentSeasonTeams.length === 0 ? (
           <div className="card-modern p-12 text-center">
@@ -128,6 +129,7 @@ export function TeamManagement() {
               <TeamCard
                 key={team.id}
                 team={team}
+                isAdmin={isAdmin}
                 onUpdate={(updatedTeam) => updateTeamMutation.mutate({
                   id: team.id,
                   team: updatedTeam,
@@ -143,40 +145,6 @@ export function TeamManagement() {
         )}
       </div>
 
-      {/* Players Section */}
-      <div className="space-y-8 mt-12">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-            <Users className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Players</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Manage your players for Season {selectedSeason}</p>
-          </div>
-        </div>
-
-        <CreatePlayerForm 
-          teams={currentSeasonTeams}
-          season={selectedSeason}
-          onSubmit={(player) => createPlayerMutation.mutate(player)}
-        />
-        
-        {currentSeasonPlayers.length === 0 ? (
-          <div className="card-modern p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="h-8 w-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No players found</h3>
-            <p className="text-gray-600 dark:text-gray-400">Add players to teams for Season {selectedSeason}</p>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {currentSeasonPlayers.map((player) => (
-              <PlayerCard key={player.id} player={player} />
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   )
 }
@@ -372,10 +340,12 @@ function CreatePlayerForm({
 
 function TeamCard({ 
   team, 
+  isAdmin,
   onUpdate, 
   onDelete 
 }: { 
   team: Team
+  isAdmin: boolean
   onUpdate: (team: Partial<Team>) => void
   onDelete: () => void
 }) {
@@ -402,7 +372,7 @@ function TeamCard({
             <Trophy className="h-6 w-6 text-white" />
           </div>
           <div>
-            {isEditing ? (
+            {isAdmin && isEditing ? (
               <Input
                 value={editData.name}
                 onChange={(e) => setEditData({ ...editData, name: e.target.value })}
@@ -411,7 +381,7 @@ function TeamCard({
             ) : (
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">{team.name}</h3>
             )}
-            {isEditing ? (
+            {isAdmin && isEditing ? (
               <Input
                 value={editData.league}
                 onChange={(e) => setEditData({ ...editData, league: e.target.value })}
@@ -424,33 +394,35 @@ function TeamCard({
           </div>
         </div>
         
-        <div className="flex gap-2">
-          {isEditing ? (
-            <>
-              <Button size="sm" onClick={handleSave} className="btn-primary">
-                Save
-              </Button>
-              <Button size="sm" onClick={() => setIsEditing(false)} className="btn-secondary">
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button size="sm" onClick={() => setIsEditing(true)} className="btn-ghost">
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button size="sm" onClick={onDelete} className="btn-ghost text-red-600 hover:text-red-700 hover:bg-red-50">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            {isEditing ? (
+              <>
+                <Button size="sm" onClick={handleSave} className="btn-primary">
+                  Save
+                </Button>
+                <Button size="sm" onClick={() => setIsEditing(false)} className="btn-secondary">
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button size="sm" onClick={() => setIsEditing(true)} className="btn-ghost">
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button size="sm" onClick={onDelete} className="btn-ghost text-red-600 hover:text-red-700 hover:bg-red-50">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
+        )}
       </div>
       
       <div className="grid grid-cols-3 gap-4 text-center">
         <div className="bg-green-50 rounded-xl p-4">
           <div className="text-3xl font-bold text-green-600 mb-1">
-            {isEditing ? (
+            {isAdmin && isEditing ? (
               <Input
                 type="number"
                 min="0"
@@ -467,7 +439,7 @@ function TeamCard({
         
         <div className="bg-red-50 rounded-xl p-4">
           <div className="text-3xl font-bold text-red-600 mb-1">
-            {isEditing ? (
+            {isAdmin && isEditing ? (
               <Input
                 type="number"
                 min="0"
@@ -484,7 +456,7 @@ function TeamCard({
         
         <div className="bg-yellow-50 rounded-xl p-4">
           <div className="text-3xl font-bold text-yellow-600 mb-1">
-            {isEditing ? (
+            {isAdmin && isEditing ? (
               <Input
                 type="number"
                 min="0"

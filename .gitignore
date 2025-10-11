@@ -6,10 +6,9 @@ __pycache__
 *.pyw
 *.pyz
 *.pywz
-*.env
+# *.env
 *.log
 *.txt
-*.md
 *.json
 *.yaml
 *.yml

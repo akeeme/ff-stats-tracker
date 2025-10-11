@@ -1,5 +1,21 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
+// Helper to get admin key from localStorage
+function getAdminKey(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('ff_admin_key');
+}
+
+// Helper to add admin key to headers
+function getHeaders(): HeadersInit {
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  const adminKey = getAdminKey();
+  if (adminKey) {
+    headers['X-Admin-Key'] = adminKey;
+  }
+  return headers;
+}
+
 export interface Team {
   id: number;
   name: string;
@@ -103,7 +119,7 @@ export const api = {
   async createTeam(team: Omit<Team, 'id' | 'version' | 'is_deleted' | 'created_at' | 'updated_at' | 'deleted_at' | 'display_name'>) {
     const response = await fetch(`${API_BASE_URL}/teams`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(team),
     });
     if (!response.ok) throw new Error('Failed to create team');
@@ -113,7 +129,7 @@ export const api = {
   async updateTeam(id: number, team: Partial<Team>, version: number) {
     const response = await fetch(`${API_BASE_URL}/teams/${id}?version=${version}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(team),
     });
     if (!response.ok) throw new Error('Failed to update team');
@@ -123,6 +139,7 @@ export const api = {
   async deleteTeam(id: number, version: number) {
     const response = await fetch(`${API_BASE_URL}/teams/${id}?version=${version}`, {
       method: 'DELETE',
+      headers: getHeaders(),
     });
     if (!response.ok) throw new Error('Failed to delete team');
     return response.json();
@@ -150,7 +167,7 @@ export const api = {
   }) {
     const response = await fetch(`${API_BASE_URL}/players`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(player),
     });
     if (!response.ok) throw new Error('Failed to create player');
@@ -160,7 +177,7 @@ export const api = {
   async updatePlayer(id: number, player: Partial<Player>, version: number) {
     const response = await fetch(`${API_BASE_URL}/players/${id}?version=${version}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(player),
     });
     if (!response.ok) throw new Error('Failed to update player');
@@ -170,6 +187,7 @@ export const api = {
   async deletePlayer(id: number, version: number) {
     const response = await fetch(`${API_BASE_URL}/players/${id}?version=${version}`, {
       method: 'DELETE',
+      headers: getHeaders(),
     });
     if (!response.ok) throw new Error('Failed to delete player');
     return response.json();
@@ -200,7 +218,7 @@ export const api = {
   }) {
     const response = await fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(game),
     });
     if (!response.ok) throw new Error('Failed to create game');
@@ -210,7 +228,7 @@ export const api = {
   async updateGame(id: number, game: Partial<Game>, version: number) {
     const response = await fetch(`${API_BASE_URL}/games/${id}?version=${version}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(game),
     });
     if (!response.ok) throw new Error('Failed to update game');
@@ -220,6 +238,7 @@ export const api = {
   async deleteGame(id: number, version: number) {
     const response = await fetch(`${API_BASE_URL}/games/${id}?version=${version}`, {
       method: 'DELETE',
+      headers: getHeaders(),
     });
     if (!response.ok) throw new Error('Failed to delete game');
     return response.json();
@@ -263,7 +282,7 @@ export const api = {
   }) {
     const response = await fetch(`${API_BASE_URL}/stats`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(stats),
     });
     if (!response.ok) throw new Error('Failed to create player stats');
@@ -273,7 +292,7 @@ export const api = {
   async updatePlayerStats(id: number, stats: Partial<PlayerStats>, version: number) {
     const response = await fetch(`${API_BASE_URL}/stats/${id}?version=${version}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(stats),
     });
     if (!response.ok) throw new Error('Failed to update player stats');
@@ -283,6 +302,7 @@ export const api = {
   async deletePlayerStats(id: number, version: number) {
     const response = await fetch(`${API_BASE_URL}/stats/${id}?version=${version}`, {
       method: 'DELETE',
+      headers: getHeaders(),
     });
     if (!response.ok) throw new Error('Failed to delete player stats');
     return response.json();
@@ -292,7 +312,7 @@ export const api = {
   async endSeason(season: number) {
     const response = await fetch(`${API_BASE_URL}/teams/end-season`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify({ season }),
     });
     if (!response.ok) throw new Error('Failed to end season');
@@ -302,7 +322,7 @@ export const api = {
   async copyTeamsToSeason(fromSeason: number, toSeason: number) {
     const response = await fetch(`${API_BASE_URL}/teams/copy-to-season`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify({ from_season: fromSeason, to_season: toSeason }),
     });
     if (!response.ok) throw new Error('Failed to copy teams to season');

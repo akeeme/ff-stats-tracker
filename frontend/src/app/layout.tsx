@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { QueryProvider } from "@/providers/query-provider"
 import { ThemeProvider } from "@/providers/theme-provider"
+import { AdminProvider } from "@/providers/admin-provider"
 import { AppLayout } from "@/components/layout"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -22,9 +23,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider defaultTheme="dark">
           <QueryProvider>
-            <AppLayout>
-              {children}
-            </AppLayout>
+            <AdminProvider>
+              <AppLayout>
+                {children}
+              </AppLayout>
+            </AdminProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

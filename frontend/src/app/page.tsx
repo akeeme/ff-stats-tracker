@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import { Dashboard } from '@/components/dashboard'
 
-export default function Home() {
-  redirect('/teams')
+export default function HomePage() {
+  return <Dashboard />
 }

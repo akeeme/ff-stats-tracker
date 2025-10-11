@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"ff-stats-tracker/internal/database"
+	"ff-stats-tracker/internal/middleware"
 	"ff-stats-tracker/internal/models"
 
 	"github.com/gofiber/fiber/v2"
@@ -19,34 +20,34 @@ func New(db *database.DB) *Handlers {
 
 func (h *Handlers) SetupRoutes(app fiber.Router) {
 	// Teams routes
-	app.Post("/teams", h.CreateTeam)
+	app.Post("/teams", middleware.AdminRequired(), h.CreateTeam)
 	app.Get("/teams", h.GetTeams)
 	app.Get("/teams/:id", h.GetTeam)
-	app.Put("/teams/:id", h.UpdateTeam)
-	app.Delete("/teams/:id", h.DeleteTeam)
-	app.Post("/teams/end-season", h.EndSeason)
-	app.Post("/teams/copy-to-season", h.CopyTeamsToSeason)
+	app.Put("/teams/:id", middleware.AdminRequired(), h.UpdateTeam)
+	app.Delete("/teams/:id", middleware.AdminRequired(), h.DeleteTeam)
+	app.Post("/teams/end-season", middleware.AdminRequired(), h.EndSeason)
+	app.Post("/teams/copy-to-season", middleware.AdminRequired(), h.CopyTeamsToSeason)
 
 	// Players routes
-	app.Post("/players", h.CreatePlayer)
+	app.Post("/players", middleware.AdminRequired(), h.CreatePlayer)
 	app.Get("/players", h.GetPlayers)
 	app.Get("/players/:id", h.GetPlayer)
-	app.Put("/players/:id", h.UpdatePlayer)
-	app.Delete("/players/:id", h.DeletePlayer)
+	app.Put("/players/:id", middleware.AdminRequired(), h.UpdatePlayer)
+	app.Delete("/players/:id", middleware.AdminRequired(), h.DeletePlayer)
 
 	// Games routes
-	app.Post("/games", h.CreateGame)
+	app.Post("/games", middleware.AdminRequired(), h.CreateGame)
 	app.Get("/games", h.GetGames)
 	app.Get("/games/:id", h.GetGame)
-	app.Put("/games/:id", h.UpdateGame)
-	app.Delete("/games/:id", h.DeleteGame)
+	app.Put("/games/:id", middleware.AdminRequired(), h.UpdateGame)
+	app.Delete("/games/:id", middleware.AdminRequired(), h.DeleteGame)
 
 	// Stats routes
-	app.Post("/stats", h.CreatePlayerStats)
+	app.Post("/stats", middleware.AdminRequired(), h.CreatePlayerStats)
 	app.Get("/stats", h.GetPlayerStats)
 	app.Get("/stats/:id", h.GetPlayerStat)
-	app.Put("/stats/:id", h.UpdatePlayerStats)
-	app.Delete("/stats/:id", h.DeletePlayerStats)
+	app.Put("/stats/:id", middleware.AdminRequired(), h.UpdatePlayerStats)
+	app.Delete("/stats/:id", middleware.AdminRequired(), h.DeletePlayerStats)
 }
 
 // EndSeason marks all teams from a specific season as inactive

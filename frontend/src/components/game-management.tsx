@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api, Game, Team } from '@/lib/api'
 import { Plus, Calendar, Trophy, Users } from 'lucide-react'
-import { useTeamsWithRealtime, useGamesWithRealtime } from '@/hooks'
+import { useTeamsWithRealtime, useGamesWithRealtime, useAdmin } from '@/hooks'
 
 export function GameManagement() {
   const queryClient = useQueryClient()
+  const { isAdmin } = useAdmin()
 
   // Queries with realtime updates
   const { data: teams = [] } = useTeamsWithRealtime()
@@ -48,10 +49,12 @@ export function GameManagement() {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Game Management</h2>
       
-      <CreateGameForm 
-        teams={activeTeams}
-        onSubmit={(game) => createGameMutation.mutate(game)}
-      />
+      {isAdmin && (
+        <CreateGameForm 
+          teams={activeTeams}
+          onSubmit={(game) => createGameMutation.mutate(game)}
+        />
+      )}
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {games.map((game) => (
@@ -59,6 +62,7 @@ export function GameManagement() {
             key={game.id}
             game={game}
             teams={activeTeams}
+            isAdmin={isAdmin}
             onUpdate={(updatedGame) => updateGameMutation.mutate({
               id: game.id,
               game: updatedGame,
@@ -241,11 +245,13 @@ function CreateGameForm({
 function GameCard({ 
   game, 
   teams,
+  isAdmin,
   onUpdate, 
   onDelete 
 }: { 
   game: Game
   teams: Team[]
+  isAdmin: boolean
   onUpdate: (game: Partial<Game>) => void
   onDelete: () => void
 }) {
@@ -277,7 +283,7 @@ function GameCard({
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Week {isEditing ? (
+            Week {isAdmin && isEditing ? (
               <Input
                 type="number"
                 min="1"
@@ -289,26 +295,28 @@ function GameCard({
               game.week
             )}
           </CardTitle>
-          <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button size="sm" onClick={handleSave}>Save</Button>
-                <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
-              </>
-            ) : (
-              <>
-                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                  Edit
-                </Button>
-                <Button size="sm" variant="destructive" onClick={onDelete}>
-                  Delete
-                </Button>
-              </>
-            )}
-          </div>
+          {isAdmin && (
+            <div className="flex gap-2">
+              {isEditing ? (
+                <>
+                  <Button size="sm" onClick={handleSave}>Save</Button>
+                  <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                </>
+              ) : (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                    Edit
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={onDelete}>
+                    Delete
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </div>
         <CardDescription>
-          {isEditing ? (
+          {isAdmin && isEditing ? (
             <Input
               value={editData.league}
               onChange={(e) => setEditData({ ...editData, league: e.target.value })}
@@ -323,7 +331,7 @@ function GameCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              {isEditing ? (
+              {isAdmin && isEditing ? (
                 <select
                   value={editData.team1_name}
                   onChange={(e) => setEditData({ ...editData, team1_name: e.target.value })}
@@ -340,7 +348,7 @@ function GameCard({
               )}
             </div>
             <div className="text-2xl font-bold">
-              {isEditing ? (
+              {isAdmin && isEditing ? (
                 <Input
                   type="number"
                   min="0"
@@ -359,7 +367,7 @@ function GameCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              {isEditing ? (
+              {isAdmin && isEditing ? (
                 <select
                   value={editData.team2_name}
                   onChange={(e) => setEditData({ ...editData, team2_name: e.target.value })}
@@ -376,7 +384,7 @@ function GameCard({
               )}
             </div>
             <div className="text-2xl font-bold">
-              {isEditing ? (
+              {isAdmin && isEditing ? (
                 <Input
                   type="number"
                   min="0"

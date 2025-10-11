@@ -31,12 +31,19 @@ export function StatEntry() {
   const activePlayers = players.filter(player => player.is_active)
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Stat Entry</h2>
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Stat Entry</h2>
+        <p className="text-gray-600 dark:text-gray-400">Enter player statistics for each game</p>
+      </div>
       
-      <Card>
+      <Card className="card-modern">
         <CardHeader>
-          <CardTitle>Select Game</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-red-600" />
+            Select Game
+          </CardTitle>
           <CardDescription>
             Choose a game to enter stats for
           </CardDescription>
@@ -49,7 +56,7 @@ export function StatEntry() {
               const game = games.find(g => g.id === gameId)
               setSelectedGame(game || null)
             }}
-            className="w-full px-3 py-2 border rounded-md"
+            className="input-modern w-full"
           >
             <option value="">Select a game</option>
             {games.map((game) => (
@@ -64,10 +71,22 @@ export function StatEntry() {
       {selectedGame && (
         <Tabs defaultValue="qb" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="qb">QB Stats</TabsTrigger>
-            <TabsTrigger value="receiver">Receiver Stats</TabsTrigger>
-            <TabsTrigger value="rushing">Rushing Stats</TabsTrigger>
-            <TabsTrigger value="defense">Defense Stats</TabsTrigger>
+            <TabsTrigger value="qb" className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              QB Stats
+            </TabsTrigger>
+            <TabsTrigger value="receiver" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              Receiver Stats
+            </TabsTrigger>
+            <TabsTrigger value="rushing" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Rushing Stats
+            </TabsTrigger>
+            <TabsTrigger value="defense" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Defense Stats
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="qb">
@@ -157,12 +176,12 @@ function QBStatsForm({
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="qb-player">Select QB</Label>
+            <Label htmlFor="qb-player" className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">Select QB</Label>
             <select
               id="qb-player"
               value={formData.player_name}
               onChange={(e) => setFormData({ ...formData, player_name: e.target.value })}
-              className="w-full px-3 py-2 border rounded-md"
+              className="input-modern w-full"
               required
             >
               <option value="">Select a player</option>
@@ -358,7 +377,7 @@ function ReceiverStatsForm({
               id="receiver-player"
               value={formData.player_name}
               onChange={(e) => setFormData({ ...formData, player_name: e.target.value })}
-              className="w-full px-3 py-2 border rounded-md"
+              className="input-modern w-full"
               required
             >
               <option value="">Select a player</option>
@@ -471,7 +490,7 @@ function RushingStatsForm({
               id="rushing-player"
               value={formData.player_name}
               onChange={(e) => setFormData({ ...formData, player_name: e.target.value })}
-              className="w-full px-3 py-2 border rounded-md"
+              className="input-modern w-full"
               required
             >
               <option value="">Select a player</option>
@@ -584,7 +603,7 @@ function DefenseStatsForm({
               id="defense-player"
               value={formData.player_name}
               onChange={(e) => setFormData({ ...formData, player_name: e.target.value })}
-              className="w-full px-3 py-2 border rounded-md"
+              className="input-modern w-full"
               required
             >
               <option value="">Select a player</option>
