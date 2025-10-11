@@ -31,7 +31,7 @@ WORKDIR /root/
 COPY --from=builder /app/ff-stats-tracker .
 
 # Expose port
-EXPOSE 8080
+EXPOSE 3011
 
 # Run the application
 CMD ["./ff-stats-tracker"]
