@@ -179,7 +179,33 @@ ff-stats-tracker/
 
 ## 🚀 Deployment
 
-### Backend
+### Docker Compose (Local Testing)
+
+```bash
+# Build and start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+```
+
+### Coolify Deployment
+
+For production deployment on Coolify, see **[COOLIFY_DEPLOYMENT.md](./COOLIFY_DEPLOYMENT.md)** for a complete step-by-step guide.
+
+Quick overview:
+1. Deploy PostgreSQL database
+2. Deploy Go backend with Dockerfile
+3. Deploy Next.js frontend with Dockerfile
+4. Configure domains and SSL
+5. Set up automated backups
+
+### Manual Deployment
+
+#### Backend
 
 ```bash
 # Build for production
@@ -189,7 +215,7 @@ go build -o ff-stats-tracker main.go
 ./ff-stats-tracker
 ```
 
-### Frontend
+#### Frontend
 
 ```bash
 # Build for production
@@ -198,10 +224,6 @@ npm run build
 # Start production server
 npm start
 ```
-
-### Docker (Optional)
-
-Both backend and frontend can be containerized for easy deployment.
 
 ## 📊 Database Schema
 

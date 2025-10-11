@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# Environment files
+.env
+.env.local
+
+# Documentation
+*.md
+!README.md
+
+# Frontend
+frontend/
+
+# Old Python code
+old-python/
+
+# Database files
+db files/
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+ff-stats-tracker
+
+# Test files
+*_test.go
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

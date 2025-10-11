@@ -6,11 +6,12 @@ __pycache__
 *.pyw
 *.pyz
 *.pywz
-# *.env
+*.env
 *.log
 *.txt
 *.json
 *.yaml
 *.yml
+!docker-compose.yml
 .stats-venv
 *.venv
