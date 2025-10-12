@@ -348,58 +348,6 @@ function LatestGameStats({ game, stats }: { game: Game | null; stats: PlayerStat
   )
 }
 
-// Box Score Section Component (currently unused, kept for future use)
-function _BoxScoreSection({ 
-  title, 
-  icon, 
-  headers, 
-  rows 
-}: { 
-  title: string
-  icon: React.ReactNode
-  headers: string[]
-  rows: string[][]
-}) {
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        <div className="text-red-600">{icon}</div>
-        <h4 className="font-bold text-gray-900 dark:text-white">{title}</h4>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b-2 border-gray-200 dark:border-gray-700">
-              {headers.map((header, i) => (
-                <th 
-                  key={i} 
-                  className={`py-2 px-2 font-semibold text-gray-700 dark:text-gray-300 ${i === 0 ? 'text-left' : 'text-center'}`}
-                >
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {rows.map((row, i) => (
-              <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                {row.map((cell, j) => (
-                  <td 
-                    key={j} 
-                    className={`py-2 px-2 ${j === 0 ? 'font-medium text-gray-900 dark:text-white text-left' : 'text-center text-gray-700 dark:text-gray-300'}`}
-                  >
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
 // Week Leaders Component
 function WeekLeaders({ stats, games }: { stats: PlayerStats[]; games: Game[] }) {
   if (games.length === 0) {
