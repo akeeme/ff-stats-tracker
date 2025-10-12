@@ -30,7 +30,7 @@ jobs:
       - run: npm test --if-present -- --ci --reporters=default --reporters=jest-junit
       - name: Build (ensures Next.js compiles)
         run: |
-          NEXT_PUBLIC_API_URL="https://api.keemlab.com/api" \
+          NEXT_PUBLIC_API_URL="https://stats-api.keemlab.com/api" \
           NEXT_PUBLIC_SUPABASE_URL="${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" \
           NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
           npm run build
