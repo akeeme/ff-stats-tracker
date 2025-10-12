@@ -1,0 +1,27 @@
+- name: frontend
+  color: 0EA5E9
+  description: Next.js / UI changes
+- name: api
+  color: 22C55E
+  description: Go backend changes
+- name: docker
+  color: 64748B
+  description: Dockerfiles and images
+- name: ci
+  color: F59E0B
+  description: GitHub Actions / CI
+- name: docs
+  color: 84CC16
+  description: Docs and markdown
+- name: config
+  color: A78BFA
+  description: Tooling / config files
+- name: tests
+  color: EF4444
+  description: Tests and test infra
+- name: deps
+  color: 8B5CF6
+  description: Dependency updates
+- name: infra
+  color: 10B981
+  description: Infra as code / tunnels / coolify
