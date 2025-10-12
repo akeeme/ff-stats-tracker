@@ -1,12 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api, Team, Player } from '@/lib/api'
 import { Plus, Users, Trophy, Edit, Trash2 } from 'lucide-react'
 import { useTeamsWithRealtime, usePlayersWithRealtime, useAdmin } from '@/hooks'
@@ -31,12 +29,7 @@ export function TeamManagement() {
     },
   })
 
-  const createPlayerMutation = useMutation({
-    mutationFn: api.createPlayer,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['players'] })
-    },
-  })
+  // createPlayerMutation removed - unused
 
   const updateTeamMutation = useMutation({
     mutationFn: ({ id, team, version }: { id: number; team: Partial<Team>; version: number }) =>
@@ -57,7 +50,6 @@ export function TeamManagement() {
   // Get unique seasons with null checks
   const seasons = teams ? Array.from(new Set(teams.map(team => team.season))).sort((a, b) => b - a) : []
   const currentSeasonTeams = teams ? teams.filter(team => team.season === selectedSeason) : []
-  const currentSeasonPlayers = players ? players.filter(player => player.season === selectedSeason) : []
 
   // Show loading state - wait for admin status to be determined
   if (teamsLoading || playersLoading || adminLoading) {
@@ -113,7 +105,7 @@ export function TeamManagement() {
 
       {/* Teams Section */}
       <div className="space-y-8">
-        {isAdmin === true && <CreateTeamForm onSubmit={(team) => createTeamMutation.mutate(team)} />}
+        {isAdmin === true && <CreateTeamForm onSubmit={(team) => createTeamMutation.mutate({ ...team, is_active: 1 })} />}
         
         {currentSeasonTeams.length === 0 ? (
           <div className="card-modern p-12 text-center">
@@ -149,7 +141,16 @@ export function TeamManagement() {
   )
 }
 
-function CreateTeamForm({ onSubmit }: { onSubmit: (team: any) => void }) {
+type TeamFormData = {
+  name: string
+  season: number
+  league: string
+  wins: number
+  losses: number
+  ties: number
+}
+
+function CreateTeamForm({ onSubmit }: { onSubmit: (team: TeamFormData) => void }) {
   const [formData, setFormData] = useState({
     name: '',
     season: 1,
