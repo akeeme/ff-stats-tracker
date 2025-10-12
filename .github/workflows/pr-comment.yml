@@ -16,5 +16,5 @@ jobs:
           message: |
             🚀 Preview is building in Coolify.
 
-            - Web: https://pr-${{ github.event.number }}.stats.keemlab.com
-            - API: https://pr-${{ github.event.number }}.stats-api.keemlab.com
+            - Web: https://test-stats.keemlab.com
+            - API: https://test-stats-api.keemlab.com
