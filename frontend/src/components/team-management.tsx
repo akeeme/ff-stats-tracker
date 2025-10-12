@@ -1,12 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api, Team, Player } from '@/lib/api'
 import { Plus, Users, Trophy, Edit, Trash2 } from 'lucide-react'
 import { useTeamsWithRealtime, usePlayersWithRealtime, useAdmin } from '@/hooks'
@@ -21,7 +19,6 @@ export function TeamManagement() {
 
   // Queries with realtime updates
   const { data: teams = [], isLoading: teamsLoading } = useTeamsWithRealtime()
-  const { data: players = [], isLoading: playersLoading } = usePlayersWithRealtime()
 
   // Mutations
   const createTeamMutation = useMutation({
@@ -31,12 +28,7 @@ export function TeamManagement() {
     },
   })
 
-  const createPlayerMutation = useMutation({
-    mutationFn: api.createPlayer,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['players'] })
-    },
-  })
+  // createPlayerMutation removed - unused
 
   const updateTeamMutation = useMutation({
     mutationFn: ({ id, team, version }: { id: number; team: Partial<Team>; version: number }) =>
@@ -57,10 +49,9 @@ export function TeamManagement() {
   // Get unique seasons with null checks
   const seasons = teams ? Array.from(new Set(teams.map(team => team.season))).sort((a, b) => b - a) : []
   const currentSeasonTeams = teams ? teams.filter(team => team.season === selectedSeason) : []
-  const currentSeasonPlayers = players ? players.filter(player => player.season === selectedSeason) : []
 
   // Show loading state - wait for admin status to be determined
-  if (teamsLoading || playersLoading || adminLoading) {
+  if (teamsLoading || adminLoading) {
     return (
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -113,7 +104,7 @@ export function TeamManagement() {
 
       {/* Teams Section */}
       <div className="space-y-8">
-        {isAdmin === true && <CreateTeamForm onSubmit={(team) => createTeamMutation.mutate(team)} />}
+        {isAdmin === true && <CreateTeamForm onSubmit={(team) => createTeamMutation.mutate({ ...team, is_active: 1 })} />}
         
         {currentSeasonTeams.length === 0 ? (
           <div className="card-modern p-12 text-center">
@@ -149,7 +140,16 @@ export function TeamManagement() {
   )
 }
 
-function CreateTeamForm({ onSubmit }: { onSubmit: (team: any) => void }) {
+type TeamFormData = {
+  name: string
+  season: number
+  league: string
+  wins: number
+  losses: number
+  ties: number
+}
+
+function CreateTeamForm({ onSubmit }: { onSubmit: (team: TeamFormData) => void }) {
   const [formData, setFormData] = useState({
     name: '',
     season: 1,
@@ -249,14 +249,14 @@ function CreateTeamForm({ onSubmit }: { onSubmit: (team: any) => void }) {
   )
 }
 
-function CreatePlayerForm({ 
+function _CreatePlayerForm({ 
   teams, 
   season, 
   onSubmit 
 }: { 
   teams: Team[]
   season: number
-  onSubmit: (player: any) => void 
+  onSubmit: (player: { name: string; team_name: string; season: number; jersey_number?: string }) => void 
 }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -475,7 +475,7 @@ function TeamCard({
   )
 }
 
-function PlayerCard({ player }: { player: Player }) {
+function _PlayerCard({ player }: { player: Player }) {
   return (
     <div className="relative card-modern p-6 border-2 border-gray-200/50 dark:border-gray-600/50 hover:border-blue-400/60 dark:hover:border-blue-500/60 hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80">
       <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400/10 to-transparent rounded-bl-full"></div>

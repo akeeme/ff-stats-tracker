@@ -140,7 +140,7 @@ function EndSeasonCard({
               <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
               <div className="text-sm text-yellow-800 dark:text-yellow-300">
                 <p className="font-medium">Warning:</p>
-                <p>This will mark all teams from Season {selectedSeason} as inactive. Teams that will continue in the new season can be copied over using the "Start New Season" section.</p>
+                <p>This will mark all teams from Season {selectedSeason} as inactive. Teams that will continue in the new season can be copied over using the &quot;Start New Season&quot; section.</p>
               </div>
             </div>
           </div>

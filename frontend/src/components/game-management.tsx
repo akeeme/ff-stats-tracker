@@ -84,7 +84,7 @@ function CreateGameForm({
   onSubmit 
 }: { 
   teams: Team[]
-  onSubmit: (game: any) => void 
+  onSubmit: (game: { week: number; league: string; season: number; team1_name: string; team1_score: number; team2_name: string; team2_score: number; winning_team_name?: string }) => void 
 }) {
   const [formData, setFormData] = useState({
     week: 1,

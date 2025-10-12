@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api, Game, Team } from '@/lib/api'
-import { Plus, Calendar, Trophy, Users, Edit, Trash2 } from 'lucide-react'
+import { Calendar, Trophy, Edit, Trash2 } from 'lucide-react'
 import { useAdmin } from '@/hooks'
 
 export default function GamesPage() {
@@ -146,7 +146,7 @@ function CreateGameForm({
 }: { 
   teams: Team[]
   season: number
-  onSubmit: (game: any) => void 
+  onSubmit: (game: { team1_name: string; team2_name: string; week: number; season: number; league: string }) => void 
 }) {
   const [formData, setFormData] = useState({
     team1_name: '',
@@ -158,7 +158,10 @@ function CreateGameForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit(formData)
+    // Get league from the selected team
+    const selectedTeam = teams.find(t => t.name === formData.team1_name)
+    const league = selectedTeam?.league || ''
+    onSubmit({ ...formData, league })
     setFormData({ 
       team1_name: '', 
       team2_name: '', 
@@ -286,9 +289,6 @@ function GameCard({
     onUpdate(editData)
     setIsEditing(false)
   }
-
-  const team1 = teams.find(t => t.name === game.team1_name)
-  const team2 = teams.find(t => t.name === game.team2_name)
 
   return (
     <div 

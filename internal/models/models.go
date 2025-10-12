@@ -79,6 +79,7 @@ type PlayerStats struct {
 
 	// Defense stats
 	FlagPulls     int `json:"flag_pulls" db:"flag_pulls"`
+	Sacks         int `json:"sacks" db:"sacks"`
 	Interceptions int `json:"interceptions" db:"interceptions"`
 	PassBreakups  int `json:"pass_breakups" db:"pass_breakups"`
 	DefTD         int `json:"def_td" db:"def_td"`
