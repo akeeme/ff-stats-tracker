@@ -48,7 +48,7 @@ export function StatsViewer() {
   const qbStats = gameStats.filter(s => s.passing_tds > 0 || s.passes_attempted > 0)
   const receiverStats = gameStats.filter(s => s.receptions > 0 || s.targets > 0)
   const rushingStats = gameStats.filter(s => s.rushing_tds > 0 || s.rush_attempts > 0)
-  const defenseStats = gameStats.filter(s => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0)
+  const defenseStats = gameStats.filter(s => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0 || s.sacks > 0)
 
   if (gamesLoading || statsLoading) {
     return (
@@ -266,8 +266,9 @@ export function StatsViewer() {
                         <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 relative z-10">{stat.player_name}</h3>
                         
                         {/* Desktop: Grid of boxes */}
-                        <div className="hidden md:grid md:grid-cols-4 gap-4">
+                        <div className="hidden md:grid md:grid-cols-5 gap-4">
                           <StatBox label="Flag Pulls" value={stat.flag_pulls} color={getColorByValue(stat.flag_pulls)} />
+                          <StatBox label="Sacks" value={stat.sacks} color={getColorByValue(stat.sacks)} />
                           <StatBox label="INTs" value={stat.interceptions} color={getColorByValue(stat.interceptions)} />
                           <StatBox label="Pass Breakups" value={stat.pass_breakups} color={getColorByValue(stat.pass_breakups)} />
                           <StatBox label="Def TDs" value={stat.def_td} color={getColorByValue(stat.def_td)} />
@@ -277,6 +278,7 @@ export function StatsViewer() {
                         <div className="md:hidden relative z-10">
                           <StatTable stats={[
                             { label: 'Flag Pulls', value: stat.flag_pulls, color: getColorByValue(stat.flag_pulls) },
+                            { label: 'Sacks', value: stat.sacks, color: getColorByValue(stat.sacks) },
                             { label: 'Interceptions', value: stat.interceptions, color: getColorByValue(stat.interceptions) },
                             { label: 'Pass Breakups', value: stat.pass_breakups, color: getColorByValue(stat.pass_breakups) },
                             { label: 'Defensive TDs', value: stat.def_td, color: getColorByValue(stat.def_td) },
@@ -470,6 +472,7 @@ function SeasonLeaderboard({ stats, season }: { stats: any[]; season: number }) 
       current.drops += stat.drops
       current.interceptions_thrown += stat.interceptions_thrown
       current.def_td += stat.def_td
+      current.sacks += stat.sacks
     }
   })
 
@@ -504,7 +507,12 @@ function SeasonLeaderboard({ stats, season }: { stats: any[]; season: number }) 
     { 
       label: 'Flag Pulls', 
       getValue: (s: any) => s.flag_pulls,
-      filter: (s: any) => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0
+      filter: (s: any) => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0 || s.sacks > 0
+    },
+    { 
+      label: 'Sacks', 
+      getValue: (s: any) => s.sacks,
+      filter: (s: any) => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0 || s.sacks > 0
     },
   ]
 

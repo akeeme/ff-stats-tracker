@@ -83,7 +83,7 @@ func (h *Handlers) CreatePlayerStats(c *fiber.Ctx) error {
 	if err == nil {
 		fmt.Printf("Found existing stats (id: %d) for player %d in game %d, updating...\n", existingID, playerID, gameID)
 		
-		updateQuery := `
+			updateQuery := `
 			UPDATE statstracker.player_stats 
 			SET 
 				passing_tds = passing_tds + $1,
@@ -98,28 +98,29 @@ func (h *Handlers) CreatePlayerStats(c *fiber.Ctx) error {
 				rushing_tds = rushing_tds + $10,
 				rush_attempts = rush_attempts + $11,
 				flag_pulls = flag_pulls + $12,
-				interceptions = interceptions + $13,
-				pass_breakups = pass_breakups + $14,
-				def_td = def_td + $15,
+				sacks = sacks + $13,
+				interceptions = interceptions + $14,
+				pass_breakups = pass_breakups + $15,
+				def_td = def_td + $16,
 				version = version + 1,
-				updated_at = $16
-			WHERE id = $17 AND is_deleted = false
+				updated_at = $17
+			WHERE id = $18 AND is_deleted = false
 			RETURNING id, player_id, game_id, passing_tds, passes_completed, passes_attempted, interceptions_thrown,
 			          receptions, targets, receiving_tds, drops, first_downs, rushing_tds, rush_attempts,
-			          flag_pulls, interceptions, pass_breakups, def_td, version, is_deleted, created_at, updated_at, deleted_at
+			          flag_pulls, sacks, interceptions, pass_breakups, def_td, version, is_deleted, created_at, updated_at, deleted_at
 		`
 		
 		var stats models.PlayerStats
 		err = h.db.QueryRow(context.Background(), updateQuery,
 			getIntValue(req.PassingTDs), getIntValue(req.PassesCompleted), getIntValue(req.PassesAttempted), getIntValue(req.InterceptionsThrown),
 			getIntValue(req.Receptions), getIntValue(req.Targets), getIntValue(req.ReceivingTDs), getIntValue(req.Drops), getIntValue(req.FirstDowns),
-			getIntValue(req.RushingTDs), getIntValue(req.RushAttempts), getIntValue(req.FlagPulls), getIntValue(req.Interceptions), 
+			getIntValue(req.RushingTDs), getIntValue(req.RushAttempts), getIntValue(req.FlagPulls), getIntValue(req.Sacks), getIntValue(req.Interceptions), 
 			getIntValue(req.PassBreakups), getIntValue(req.DefTD),
 			time.Now(), existingID,
 		).Scan(
 			&stats.ID, &stats.PlayerID, &stats.GameID, &stats.PassingTDs, &stats.PassesCompleted, &stats.PassesAttempted, &stats.InterceptionsThrown,
 			&stats.Receptions, &stats.Targets, &stats.ReceivingTDs, &stats.Drops, &stats.FirstDowns, &stats.RushingTDs, &stats.RushAttempts,
-			&stats.FlagPulls, &stats.Interceptions, &stats.PassBreakups, &stats.DefTD,
+			&stats.FlagPulls, &stats.Sacks, &stats.Interceptions, &stats.PassBreakups, &stats.DefTD,
 			&stats.Version, &stats.IsDeleted, &stats.CreatedAt, &stats.UpdatedAt, &stats.DeletedAt,
 		)
 		
@@ -197,6 +198,9 @@ func (h *Handlers) CreatePlayerStats(c *fiber.Ctx) error {
 	if req.FlagPulls != nil {
 		stats.FlagPulls = *req.FlagPulls
 	}
+	if req.Sacks != nil {
+		stats.Sacks = *req.Sacks
+	}
 	if req.Interceptions != nil {
 		stats.Interceptions = *req.Interceptions
 	}
@@ -211,8 +215,8 @@ func (h *Handlers) CreatePlayerStats(c *fiber.Ctx) error {
 		INSERT INTO statstracker.player_stats (
 			player_id, game_id, passing_tds, passes_completed, passes_attempted, interceptions_thrown,
 			receptions, targets, receiving_tds, drops, first_downs, rushing_tds, rush_attempts,
-			flag_pulls, interceptions, pass_breakups, def_td, version, is_deleted, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+			flag_pulls, sacks, interceptions, pass_breakups, def_td, version, is_deleted, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
 		RETURNING id
 	`
 
@@ -220,7 +224,7 @@ func (h *Handlers) CreatePlayerStats(c *fiber.Ctx) error {
 	err = h.db.QueryRow(context.Background(), query,
 		stats.PlayerID, stats.GameID, stats.PassingTDs, stats.PassesCompleted, stats.PassesAttempted, stats.InterceptionsThrown,
 		stats.Receptions, stats.Targets, stats.ReceivingTDs, stats.Drops, stats.FirstDowns,
-		stats.RushingTDs, stats.RushAttempts, stats.FlagPulls, stats.Interceptions, stats.PassBreakups, stats.DefTD,
+		stats.RushingTDs, stats.RushAttempts, stats.FlagPulls, stats.Sacks, stats.Interceptions, stats.PassBreakups, stats.DefTD,
 		stats.Version, stats.IsDeleted, stats.CreatedAt, stats.UpdatedAt,
 	).Scan(&id)
 
@@ -258,7 +262,7 @@ func (h *Handlers) GetPlayerStats(c *fiber.Ctx) error {
 	query := fmt.Sprintf(`
 		SELECT ps.id, ps.player_id, ps.game_id, ps.passing_tds, ps.passes_completed, ps.passes_attempted, ps.interceptions_thrown,
 		       ps.receptions, ps.targets, ps.receiving_tds, ps.drops, ps.first_downs, ps.rushing_tds, ps.rush_attempts,
-		       ps.flag_pulls, ps.interceptions, ps.pass_breakups, ps.def_td, ps.version, ps.is_deleted, ps.created_at, ps.updated_at, ps.deleted_at,
+		       ps.flag_pulls, ps.sacks, ps.interceptions, ps.pass_breakups, ps.def_td, ps.version, ps.is_deleted, ps.created_at, ps.updated_at, ps.deleted_at,
 		       p.name as player_name, g.week as game_week, g.season as game_season, g.league,
 		       t1.name as team1_name, t2.name as team2_name
 		FROM player_stats ps
@@ -289,7 +293,7 @@ func (h *Handlers) GetPlayerStats(c *fiber.Ctx) error {
 		err := rows.Scan(
 			&stat.ID, &stat.PlayerID, &stat.GameID, &stat.PassingTDs, &stat.PassesCompleted, &stat.PassesAttempted, &stat.InterceptionsThrown,
 			&stat.Receptions, &stat.Targets, &stat.ReceivingTDs, &stat.Drops, &stat.FirstDowns, &stat.RushingTDs, &stat.RushAttempts,
-			&stat.FlagPulls, &stat.Interceptions, &stat.PassBreakups, &stat.DefTD,
+			&stat.FlagPulls, &stat.Sacks, &stat.Interceptions, &stat.PassBreakups, &stat.DefTD,
 			&stat.Version, &stat.IsDeleted, &stat.CreatedAt, &stat.UpdatedAt, &stat.DeletedAt,
 			&playerName, &stat.GameWeek, &stat.GameSeason, &league, &team1Name, &team2Name,
 		)
@@ -339,7 +343,7 @@ func (h *Handlers) GetPlayerStat(c *fiber.Ctx) error {
 	query := fmt.Sprintf(`
 		SELECT ps.id, ps.player_id, ps.game_id, ps.passing_tds, ps.passes_completed, ps.passes_attempted, ps.interceptions_thrown,
 		       ps.receptions, ps.targets, ps.receiving_tds, ps.drops, ps.first_downs, ps.rushing_tds, ps.rush_attempts,
-		       ps.flag_pulls, ps.interceptions, ps.pass_breakups, ps.def_td, ps.version, ps.is_deleted, ps.created_at, ps.updated_at, ps.deleted_at,
+		       ps.flag_pulls, ps.sacks, ps.interceptions, ps.pass_breakups, ps.def_td, ps.version, ps.is_deleted, ps.created_at, ps.updated_at, ps.deleted_at,
 		       p.name as player_name, g.week as game_week, g.season as game_season, g.league,
 		       t1.name as team1_name, t2.name as team2_name
 		FROM player_stats ps
@@ -355,7 +359,7 @@ func (h *Handlers) GetPlayerStat(c *fiber.Ctx) error {
 	err = h.db.QueryRow(context.Background(), query, args...).Scan(
 		&stat.ID, &stat.PlayerID, &stat.GameID, &stat.PassingTDs, &stat.PassesCompleted, &stat.PassesAttempted, &stat.InterceptionsThrown,
 		&stat.Receptions, &stat.Targets, &stat.ReceivingTDs, &stat.Drops, &stat.FirstDowns, &stat.RushingTDs, &stat.RushAttempts,
-		&stat.FlagPulls, &stat.Interceptions, &stat.PassBreakups, &stat.DefTD,
+		&stat.FlagPulls, &stat.Sacks, &stat.Interceptions, &stat.PassBreakups, &stat.DefTD,
 		&stat.Version, &stat.IsDeleted, &stat.CreatedAt, &stat.UpdatedAt, &stat.DeletedAt,
 		&playerName, &stat.GameWeek, &stat.GameSeason, &league, &team1Name, &team2Name,
 	)
@@ -517,6 +521,11 @@ func (h *Handlers) UpdatePlayerStats(c *fiber.Ctx) error {
 		args = append(args, *req.FlagPulls)
 		argIndex++
 	}
+	if req.Sacks != nil {
+		setParts = append(setParts, fmt.Sprintf("sacks = $%d", argIndex))
+		args = append(args, *req.Sacks)
+		argIndex++
+	}
 	if req.Interceptions != nil {
 		setParts = append(setParts, fmt.Sprintf("interceptions = $%d", argIndex))
 		args = append(args, *req.Interceptions)
@@ -540,7 +549,7 @@ func (h *Handlers) UpdatePlayerStats(c *fiber.Ctx) error {
 		WHERE id = $%d AND is_deleted = false
 		RETURNING id, player_id, game_id, passing_tds, passes_completed, passes_attempted, interceptions_thrown,
 		          receptions, targets, receiving_tds, drops, first_downs, rushing_tds, rush_attempts,
-		          flag_pulls, interceptions, pass_breakups, def_td, version, is_deleted, created_at, updated_at, deleted_at
+		          flag_pulls, sacks, interceptions, pass_breakups, def_td, version, is_deleted, created_at, updated_at, deleted_at
 	`, fmt.Sprintf("%s", setParts[0]), argIndex)
 
 	for i := 1; i < len(setParts); i++ {
@@ -550,7 +559,7 @@ func (h *Handlers) UpdatePlayerStats(c *fiber.Ctx) error {
 			WHERE id = $%d AND is_deleted = false
 			RETURNING id, player_id, game_id, passing_tds, passes_completed, passes_attempted, interceptions_thrown,
 			          receptions, targets, receiving_tds, drops, first_downs, rushing_tds, rush_attempts,
-			          flag_pulls, interceptions, pass_breakups, def_td, version, is_deleted, created_at, updated_at, deleted_at
+			          flag_pulls, sacks, interceptions, pass_breakups, def_td, version, is_deleted, created_at, updated_at, deleted_at
 		`, fmt.Sprintf("%s, %s", setParts[0], setParts[i]), argIndex)
 	}
 
@@ -558,7 +567,7 @@ func (h *Handlers) UpdatePlayerStats(c *fiber.Ctx) error {
 	err = h.db.QueryRow(context.Background(), updateQuery, args...).Scan(
 		&stats.ID, &stats.PlayerID, &stats.GameID, &stats.PassingTDs, &stats.PassesCompleted, &stats.PassesAttempted, &stats.InterceptionsThrown,
 		&stats.Receptions, &stats.Targets, &stats.ReceivingTDs, &stats.Drops, &stats.FirstDowns, &stats.RushingTDs, &stats.RushAttempts,
-		&stats.FlagPulls, &stats.Interceptions, &stats.PassBreakups, &stats.DefTD,
+		&stats.FlagPulls, &stats.Sacks, &stats.Interceptions, &stats.PassBreakups, &stats.DefTD,
 		&stats.Version, &stats.IsDeleted, &stats.CreatedAt, &stats.UpdatedAt, &stats.DeletedAt,
 	)
 

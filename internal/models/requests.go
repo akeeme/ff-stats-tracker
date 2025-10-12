@@ -95,6 +95,7 @@ type PlayerStatsCreateRequest struct {
 
 	// Defense stats
 	FlagPulls     *int `json:"flag_pulls,omitempty"`
+	Sacks         *int `json:"sacks,omitempty"`
 	Interceptions *int `json:"interceptions,omitempty"`
 	PassBreakups  *int `json:"pass_breakups,omitempty"`
 	DefTD         *int `json:"def_td,omitempty"`
@@ -120,6 +121,7 @@ type PlayerStatsUpdateRequest struct {
 
 	// Defense stats
 	FlagPulls     *int `json:"flag_pulls,omitempty"`
+	Sacks         *int `json:"sacks,omitempty"`
 	Interceptions *int `json:"interceptions,omitempty"`
 	PassBreakups  *int `json:"pass_breakups,omitempty"`
 	DefTD         *int `json:"def_td,omitempty"`
