@@ -9,8 +9,8 @@ import { AppLayout } from "@/components/layout"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Flag Football Stats Tracker",
-  description: "Track flag football statistics, teams, players, and games",
+  title: "Rhinos Stats Tracker",
+  description: "Track rhinos statistics, teams, players, and games",
 }
 
 export default function RootLayout({

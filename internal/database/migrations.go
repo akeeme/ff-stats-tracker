@@ -33,6 +33,20 @@ func Migrate(db *DB) error {
 		}
 	}
 
+	// Fix sequences to prevent duplicate key errors
+	sequences := []string{
+		"SELECT setval('statstracker.teams_id_seq', COALESCE((SELECT MAX(id) FROM statstracker.teams), 0) + 1, false)",
+		"SELECT setval('statstracker.players_id_seq', COALESCE((SELECT MAX(id) FROM statstracker.players), 0) + 1, false)",
+		"SELECT setval('statstracker.games_id_seq', COALESCE((SELECT MAX(id) FROM statstracker.games), 0) + 1, false)",
+		"SELECT setval('statstracker.player_stats_id_seq', COALESCE((SELECT MAX(id) FROM statstracker.player_stats), 0) + 1, false)",
+	}
+
+	for _, seqSQL := range sequences {
+		if _, err := db.Exec(ctx, seqSQL); err != nil {
+			log.Printf("Warning: failed to reset sequence: %v", err)
+		}
+	}
+
 	log.Println("Database migrations completed successfully")
 	return nil
 }
