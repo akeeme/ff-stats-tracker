@@ -1,4 +1,7 @@
 name: Manage Labels
+
+permissions: write-all
+
 on:
   workflow_dispatch:
   push:
