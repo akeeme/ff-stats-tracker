@@ -1,4 +1,7 @@
 name: PR Preview Comment
+
+permissions: write-all
+
 on:
   pull_request:
     types: [opened, synchronize, reopened]
