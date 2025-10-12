@@ -1,0 +1,87 @@
+# Frontend (Next.js)
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'frontend/**/*'
+          - 'frontend/**/.*'
+          - '**/*.tsx'
+          - '**/*.jsx'
+          - '**/next.config.*'
+
+# API (Go)
+api:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.go'
+          - 'go.mod'
+          - 'go.sum'
+          - 'api/**/*'
+
+# Docker / Containers
+docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'Dockerfile'
+          - '**/Dockerfile'
+          - '**/docker-compose*.yml'
+          - '.dockerignore'
+          - 'frontend/Dockerfile'
+
+# CI (GitHub Actions)
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**/*'
+          - '.github/actions/**/*'
+          - '.github/labeler.yml'
+
+# Docs & repo meta
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'README*'
+          - 'docs/**/*'
+
+# Config (tooling, lint, prettier, tsconfig, etc.)
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/.eslintrc*'
+          - '**/.prettierrc*'
+          - '**/tsconfig*.json'
+          - '**/.editorconfig'
+          - '**/.npmrc'
+          - '**/.golangci.yml'
+          - '**/.env.example'
+          - '**/.env.*.example'
+
+# Tests
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.{spec,test}.ts'
+          - '**/*.{spec,test}.tsx'
+          - '**/*_test.go'
+          - 'jest.config.*'
+          - 'vitest.config.*'
+
+# Dependencies (lockfiles / package manifests)
+deps:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'package.json'
+          - 'package-lock.json'
+          - 'pnpm-lock.yaml'
+          - 'yarn.lock'
+          - 'go.mod'
+          - 'go.sum'
+
+# Infra (Coolify / Cloudflare / Supabase config you keep in repo)
+infra:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'coolify/**/*'
+          - 'cloudflared/**/*'
+          - 'infra/**/*'
+          - 'supabase/**/*'
