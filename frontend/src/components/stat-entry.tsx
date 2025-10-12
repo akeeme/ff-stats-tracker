@@ -80,7 +80,7 @@ export function StatEntry() {
     if (!selectedSeason && seasons.length > 0) {
       setSelectedSeason(seasons[0])
     }
-  }, [seasons.length, selectedSeason])
+  }, [seasons, selectedSeason])
 
   // Filter games by selected season and sort by week descending
   const seasonGames = selectedSeason

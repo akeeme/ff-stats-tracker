@@ -239,7 +239,7 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
       playerCounts[entry.playerName] = (playerCounts[entry.playerName] || 0) + 1
     })
     return Object.entries(playerCounts)
-      .filter(([_, count]) => count >= 3)
+      .filter(([, count]) => count >= 3)
       .map(([playerName]) => playerName)
   }
 
@@ -276,10 +276,6 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
 
   // Filter players by game season first
   const seasonPlayers = players.filter(p => p.season === game.season)
-
-  const filteredPlayers = searchTerm
-    ? seasonPlayers.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    : seasonPlayers
 
   // Get players assigned to each section
   const qbPlayers = seasonPlayers.filter(p => assignedPlayers.qb.includes(p.name))
@@ -643,7 +639,7 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
           <CardContent className="space-y-4">
             {qbPlayers.length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                No players assigned. Click "Add Player" to get started.
+                No players assigned. Click &quot;Add Player&quot; to get started.
               </div>
             ) : (
               qbPlayers.map(player => {
@@ -821,7 +817,7 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
           <CardContent className="space-y-4">
             {wrPlayers.length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                No players assigned. Click "Add Player" to get started.
+                No players assigned. Click &quot;Add Player&quot; to get started.
               </div>
             ) : (
               wrPlayers.map(player => {
@@ -1015,7 +1011,7 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
           <CardContent className="space-y-4">
             {rbPlayers.length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                No players assigned. Click "Add Player" to get started.
+                No players assigned. Click &quot;Add Player&quot; to get started.
               </div>
             ) : (
               rbPlayers.map(player => {
@@ -1186,7 +1182,7 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
           <CardContent className="space-y-4">
             {defPlayers.length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                No players assigned. Click "Add Player" to get started.
+                No players assigned. Click &quot;Add Player&quot; to get started.
               </div>
             ) : (
               defPlayers.map(player => {

@@ -348,8 +348,8 @@ function LatestGameStats({ game, stats }: { game: Game | null; stats: PlayerStat
   )
 }
 
-// Box Score Section Component
-function BoxScoreSection({ 
+// Box Score Section Component (currently unused, kept for future use)
+function _BoxScoreSection({ 
   title, 
   icon, 
   headers, 

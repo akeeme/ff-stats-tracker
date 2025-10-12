@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api, Player, Team } from '@/lib/api'
-import { Plus, Users } from 'lucide-react'
+import { Users } from 'lucide-react'
 import { useAdmin } from '@/hooks'
 
 export default function PlayersPage() {
@@ -113,7 +113,7 @@ function CreatePlayerForm({
 }: { 
   teams: Team[]
   season: number
-  onSubmit: (player: any) => void 
+  onSubmit: (player: { name: string; team_name: string; season: number; jersey_number?: string }) => void 
 }) {
   const [formData, setFormData] = useState({
     name: '',
