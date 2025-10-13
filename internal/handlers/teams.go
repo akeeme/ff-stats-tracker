@@ -288,21 +288,22 @@ func (h *Handlers) UpdateTeam(c *fiber.Ctx) error {
 	}
 
 	args = append(args, id)
+	
+	// Build the complete SET clause by joining all parts
+	setClause := ""
+	for i, part := range setParts {
+		if i > 0 {
+			setClause += ", "
+		}
+		setClause += part
+	}
+	
 	updateQuery := fmt.Sprintf(`
-		UPDATE teams 
+		UPDATE statstracker.teams 
 		SET %s 
 		WHERE id = $%d AND is_deleted = false
 		RETURNING id, name, season, league, wins, losses, ties, is_active, version, is_deleted, created_at, updated_at, deleted_at
-	`, fmt.Sprintf("%s", setParts[0]), argIndex)
-
-	for i := 1; i < len(setParts); i++ {
-		updateQuery = fmt.Sprintf(`
-			UPDATE teams 
-			SET %s 
-			WHERE id = $%d AND is_deleted = false
-			RETURNING id, name, season, league, wins, losses, ties, is_active, version, is_deleted, created_at, updated_at, deleted_at
-		`, fmt.Sprintf("%s, %s", setParts[0], setParts[i]), argIndex)
-	}
+	`, setClause, argIndex)
 
 	var team models.Team
 	err = h.db.QueryRow(context.Background(), updateQuery, args...).Scan(

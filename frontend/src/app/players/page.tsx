@@ -1,17 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api, Player, Team } from '@/lib/api'
-import { Users } from 'lucide-react'
+import { Users, Loader2, Trash2 } from 'lucide-react'
 import { useAdmin } from '@/hooks'
+import { useToast } from '@/hooks/use-toast'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 
 export default function PlayersPage() {
   const queryClient = useQueryClient()
-  const [selectedSeason, setSelectedSeason] = useState<number>(1)
+  const { toast } = useToast()
+  const [selectedSeason, setSelectedSeason] = useState<number | null>(null)
   const { isAdmin, isLoading: adminLoading } = useAdmin()
 
   // Queries
@@ -30,16 +33,56 @@ export default function PlayersPage() {
     mutationFn: api.createPlayer,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['players'] })
+      toast({
+        title: "Player created",
+        description: "The player has been successfully created.",
+        variant: "success",
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create player. Please try again.",
+        variant: "destructive",
+      })
+    },
+  })
+
+  const deletePlayerMutation = useMutation({
+    mutationFn: ({ id, version }: { id: number; version: number }) =>
+      api.deletePlayer(id, version),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['players'] })
+      toast({
+        title: "Player deleted",
+        description: "The player has been successfully deleted.",
+        variant: "success",
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete player. Please try again.",
+        variant: "destructive",
+      })
     },
   })
 
   // Get unique seasons with null checks
   const seasons = teams ? Array.from(new Set(teams.map(team => team.season))).sort((a, b) => b - a) : []
-  const currentSeasonTeams = teams ? teams.filter(team => team.season === selectedSeason) : []
-  const currentSeasonPlayers = players ? players.filter(player => player.season === selectedSeason) : []
+  
+  // Set initial season to the latest when data loads
+  useEffect(() => {
+    if (seasons.length > 0 && selectedSeason === null) {
+      setSelectedSeason(seasons[0]) // seasons is already sorted descending, so [0] is the latest
+    }
+  }, [seasons, selectedSeason])
+  
+  const currentSeasonTeams = teams && selectedSeason ? teams.filter(team => team.season === selectedSeason) : []
+  const currentSeasonPlayers = players && selectedSeason ? players.filter(player => player.season === selectedSeason) : []
 
   // Show loading state
-  if (teamsLoading || playersLoading || adminLoading) {
+  if (teamsLoading || playersLoading || adminLoading || selectedSeason === null) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
@@ -83,6 +126,7 @@ export default function PlayersPage() {
           teams={currentSeasonTeams}
           season={selectedSeason}
           onSubmit={(player) => createPlayerMutation.mutate(player)}
+          isLoading={createPlayerMutation.isPending}
         />
       )}
       
@@ -98,7 +142,16 @@ export default function PlayersPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {currentSeasonPlayers.map((player) => (
-            <PlayerCard key={player.id} player={player} />
+            <PlayerCard 
+              key={player.id} 
+              player={player}
+              isAdmin={isAdmin}
+              onDelete={() => deletePlayerMutation.mutate({
+                id: player.id,
+                version: player.version
+              })}
+              isDeleting={deletePlayerMutation.isPending}
+            />
           ))}
         </div>
       )}
@@ -109,11 +162,13 @@ export default function PlayersPage() {
 function CreatePlayerForm({ 
   teams, 
   season, 
-  onSubmit 
+  onSubmit,
+  isLoading
 }: { 
   teams: Team[]
   season: number
-  onSubmit: (player: { name: string; team_name: string; season: number; jersey_number?: string }) => void 
+  onSubmit: (player: { name: string; team_name: string; season: number; jersey_number?: string }) => void
+  isLoading: boolean
 }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -185,16 +240,32 @@ function CreatePlayerForm({
           />
         </div>
         
-        <Button type="submit" className="btn-primary w-full">
-          <Users className="h-4 w-4 mr-2" />
-          Add Player
+        <Button type="submit" className="btn-primary w-full" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Adding...
+            </>
+          ) : (
+            <>
+              <Users className="h-4 w-4 mr-2" />
+              Add Player
+            </>
+          )}
         </Button>
       </form>
     </div>
   )
 }
 
-function PlayerCard({ player }: { player: Player }) {
+function PlayerCard({ player, isAdmin, onDelete, isDeleting }: { player: Player; isAdmin: boolean; onDelete: () => void; isDeleting: boolean }) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  
+  const handleDelete = () => {
+    onDelete()
+    setShowDeleteDialog(false)
+  }
+  
   return (
     <div className="relative card-bubbly p-6 border-2 border-gray-200/50 dark:border-gray-600/50 hover:border-blue-400/60 dark:hover:border-blue-500/60 hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80">
       <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400/10 to-transparent rounded-bl-full"></div>
@@ -214,6 +285,20 @@ function PlayerCard({ player }: { player: Player }) {
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{player.team_name}</p>
         </div>
+        {isAdmin && (
+          <Button 
+            size="sm" 
+            onClick={() => setShowDeleteDialog(true)} 
+            className="btn-ghost text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
@@ -225,6 +310,22 @@ function PlayerCard({ player }: { player: Player }) {
         </div>
         <span className="text-xs text-gray-500 dark:text-gray-400">Season {player.season}</span>
       </div>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Player?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{player.name}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
