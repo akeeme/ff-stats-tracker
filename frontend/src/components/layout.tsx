@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { Moon, Sun, Shield } from 'lucide-react'
 import { useTheme } from '@/providers/theme-provider'
 import { useAdmin } from '@/hooks'
+import { WhatsNewModal } from '@/components/whats-new-modal'
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -26,6 +27,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
+      {/* What's New Modal */}
+      <WhatsNewModal />
+      
       {/* Modern Header */}
       <div className="relative bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 shadow-xl border-b-2 border-red-500/30">
         <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-transparent to-red-500/5"></div>
