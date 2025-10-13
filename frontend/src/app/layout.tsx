@@ -5,6 +5,7 @@ import { QueryProvider } from "@/providers/query-provider"
 import { ThemeProvider } from "@/providers/theme-provider"
 import { AdminProvider } from "@/providers/admin-provider"
 import { AppLayout } from "@/components/layout"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -27,6 +28,7 @@ export default function RootLayout({
               <AppLayout>
                 {children}
               </AppLayout>
+              <Toaster />
             </AdminProvider>
           </QueryProvider>
         </ThemeProvider>

@@ -1,17 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api, Team, Player } from '@/lib/api'
-import { Plus, Users, Trophy, Edit, Trash2 } from 'lucide-react'
+import { Plus, Users, Trophy, Edit, Trash2, ArrowUpDown, Loader2 } from 'lucide-react'
 import { useTeamsWithRealtime, usePlayersWithRealtime, useAdmin } from '@/hooks'
+import { useToast } from '@/hooks/use-toast'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+
+type SortOption = 'name' | 'wins' | 'losses' | 'winPct'
 
 export function TeamManagement() {
   const queryClient = useQueryClient()
-  const [selectedSeason, setSelectedSeason] = useState<number>(1)
+  const { toast } = useToast()
+  const [selectedSeason, setSelectedSeason] = useState<number | null>(null)
+  const [sortBy, setSortBy] = useState<SortOption>('name')
   const { isAdmin, isLoading: adminLoading } = useAdmin()
 
   // Debug: Log admin status - THIS RUNS ON EVERY RENDER
@@ -25,6 +31,18 @@ export function TeamManagement() {
     mutationFn: api.createTeam,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams'] })
+      toast({
+        title: "Team created",
+        description: "The team has been successfully created.",
+        variant: "success",
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create team. Please try again.",
+        variant: "destructive",
+      })
     },
   })
 
@@ -35,6 +53,18 @@ export function TeamManagement() {
       api.updateTeam(id, team, version),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams'] })
+      toast({
+        title: "Team updated",
+        description: "The team has been successfully updated.",
+        variant: "success",
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update team. Please try again.",
+        variant: "destructive",
+      })
     },
   })
 
@@ -43,15 +73,57 @@ export function TeamManagement() {
       api.deleteTeam(id, version),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams'] })
+      toast({
+        title: "Team deleted",
+        description: "The team has been successfully deleted.",
+        variant: "success",
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete team. Please try again.",
+        variant: "destructive",
+      })
     },
   })
 
   // Get unique seasons with null checks
   const seasons = teams ? Array.from(new Set(teams.map(team => team.season))).sort((a, b) => b - a) : []
-  const currentSeasonTeams = teams ? teams.filter(team => team.season === selectedSeason) : []
+  
+  // Set initial season to the latest when data loads
+  useEffect(() => {
+    if (seasons.length > 0 && selectedSeason === null) {
+      setSelectedSeason(seasons[0]) // seasons is already sorted descending, so [0] is the latest
+    }
+  }, [seasons, selectedSeason])
+  
+  // Filter and sort teams
+  let currentSeasonTeams = teams && selectedSeason ? teams.filter(team => team.season === selectedSeason) : []
+  
+  // Sort teams based on selected option
+  currentSeasonTeams = [...currentSeasonTeams].sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name)
+      case 'wins':
+        return b.wins - a.wins
+      case 'losses':
+        return b.losses - a.losses // Most losses first
+      case 'winPct': {
+        const totalA = a.wins + a.losses + a.ties
+        const totalB = b.wins + b.losses + b.ties
+        const pctA = totalA > 0 ? a.wins / totalA : 0
+        const pctB = totalB > 0 ? b.wins / totalB : 0
+        return pctB - pctA
+      }
+      default:
+        return 0
+    }
+  })
 
-  // Show loading state - wait for admin status to be determined
-  if (teamsLoading || adminLoading) {
+  // Show loading state - wait for admin status to be determined and season to be set
+  if (teamsLoading || adminLoading || selectedSeason === null) {
     return (
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -87,24 +159,43 @@ export function TeamManagement() {
             {isAdmin ? 'Manage your teams for each season' : 'View teams for each season'}
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Label htmlFor="season-select" className="text-sm font-medium text-gray-700 dark:text-gray-300">Season:</Label>
-          <select
-            id="season-select"
-            value={selectedSeason}
-            onChange={(e) => setSelectedSeason(Number(e.target.value))}
-            className="input-modern w-40"
-          >
-            {seasons.map(season => (
-              <option key={season} value={season}>Season {season}</option>
-            ))}
-          </select>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="sort-select" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <ArrowUpDown className="h-4 w-4 inline mr-1" />
+              Sort:
+            </Label>
+            <select
+              id="sort-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="input-modern w-32"
+            >
+              <option value="name">Name</option>
+              <option value="wins">Wins</option>
+              <option value="losses">Losses</option>
+              <option value="winPct">Win %</option>
+            </select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="season-select" className="text-sm font-medium text-gray-700 dark:text-gray-300">Season:</Label>
+            <select
+              id="season-select"
+              value={selectedSeason}
+              onChange={(e) => setSelectedSeason(Number(e.target.value))}
+              className="input-modern w-32"
+            >
+              {seasons.map(season => (
+                <option key={season} value={season}>Season {season}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Teams Section */}
       <div className="space-y-8">
-        {isAdmin === true && <CreateTeamForm onSubmit={(team) => createTeamMutation.mutate({ ...team, is_active: 1 })} />}
+        {isAdmin === true && <CreateTeamForm selectedSeason={selectedSeason} onSubmit={(team) => createTeamMutation.mutate({ ...team, is_active: 1 })} isLoading={createTeamMutation.isPending} />}
         
         {currentSeasonTeams.length === 0 ? (
           <div className="card-modern p-12 text-center">
@@ -130,6 +221,8 @@ export function TeamManagement() {
                   id: team.id,
                   version: team.version
                 })}
+                isUpdating={updateTeamMutation.isPending}
+                isDeleting={deleteTeamMutation.isPending}
               />
             ))}
           </div>
@@ -149,10 +242,10 @@ type TeamFormData = {
   ties: number
 }
 
-function CreateTeamForm({ onSubmit }: { onSubmit: (team: TeamFormData) => void }) {
+function CreateTeamForm({ selectedSeason, onSubmit, isLoading }: { selectedSeason: number; onSubmit: (team: TeamFormData) => void; isLoading: boolean }) {
   const [formData, setFormData] = useState({
     name: '',
-    season: 1,
+    season: selectedSeason,
     league: '',
     wins: 0,
     losses: 0,
@@ -161,8 +254,8 @@ function CreateTeamForm({ onSubmit }: { onSubmit: (team: TeamFormData) => void }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit(formData)
-    setFormData({ name: '', season: 1, league: '', wins: 0, losses: 0, ties: 0 })
+    onSubmit({ ...formData, season: selectedSeason })
+    setFormData({ name: '', season: selectedSeason, league: '', wins: 0, losses: 0, ties: 0 })
   }
 
   return (
@@ -213,6 +306,7 @@ function CreateTeamForm({ onSubmit }: { onSubmit: (team: TeamFormData) => void }
               min="0"
               value={formData.wins}
               onChange={(e) => setFormData({ ...formData, wins: Number(e.target.value) })}
+              onFocus={(e) => e.target.select()}
               className="input-modern text-center"
             />
           </div>
@@ -224,6 +318,7 @@ function CreateTeamForm({ onSubmit }: { onSubmit: (team: TeamFormData) => void }
               min="0"
               value={formData.losses}
               onChange={(e) => setFormData({ ...formData, losses: Number(e.target.value) })}
+              onFocus={(e) => e.target.select()}
               className="input-modern text-center"
             />
           </div>
@@ -235,14 +330,24 @@ function CreateTeamForm({ onSubmit }: { onSubmit: (team: TeamFormData) => void }
               min="0"
               value={formData.ties}
               onChange={(e) => setFormData({ ...formData, ties: Number(e.target.value) })}
+              onFocus={(e) => e.target.select()}
               className="input-modern text-center"
             />
           </div>
         </div>
         
-        <Button type="submit" className="btn-primary w-full">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Team
+        <Button type="submit" className="btn-primary w-full" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Team
+            </>
+          )}
         </Button>
       </form>
     </div>
@@ -342,14 +447,19 @@ function TeamCard({
   team, 
   isAdmin,
   onUpdate, 
-  onDelete 
+  onDelete,
+  isUpdating,
+  isDeleting
 }: { 
   team: Team
   isAdmin: boolean
   onUpdate: (team: Partial<Team>) => void
   onDelete: () => void
+  isUpdating: boolean
+  isDeleting: boolean
 }) {
   const [isEditing, setIsEditing] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [editData, setEditData] = useState({
     name: team.name,
     league: team.league,
@@ -359,8 +469,13 @@ function TeamCard({
   })
 
   const handleSave = () => {
-    onUpdate(editData)
+    onUpdate({ ...editData, season: team.season })
     setIsEditing(false)
+  }
+  
+  const handleDelete = () => {
+    onDelete()
+    setShowDeleteDialog(false)
   }
 
   return (
@@ -398,26 +513,57 @@ function TeamCard({
           <div className="flex gap-2">
             {isEditing ? (
               <>
-                <Button size="sm" onClick={handleSave} className="btn-primary">
-                  Save
+                <Button size="sm" onClick={handleSave} className="btn-primary" disabled={isUpdating}>
+                  {isUpdating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </>
+                  ) : (
+                    'Save'
+                  )}
                 </Button>
-                <Button size="sm" onClick={() => setIsEditing(false)} className="btn-secondary">
+                <Button size="sm" onClick={() => setIsEditing(false)} className="btn-secondary" disabled={isUpdating}>
                   Cancel
                 </Button>
               </>
             ) : (
               <>
-                <Button size="sm" onClick={() => setIsEditing(true)} className="btn-ghost">
+                <Button size="sm" onClick={() => setIsEditing(true)} className="btn-ghost" disabled={isDeleting}>
                   <Edit className="h-4 w-4" />
                 </Button>
-                <Button size="sm" onClick={onDelete} className="btn-ghost text-red-600 hover:text-red-700 hover:bg-red-50">
-                  <Trash2 className="h-4 w-4" />
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowDeleteDialog(true)} 
+                  className="btn-ghost text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
                 </Button>
               </>
             )}
           </div>
         )}
       </div>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Team?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{team.name}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       <div className="grid grid-cols-3 gap-4 text-center">
         <div className="bg-green-50 rounded-xl p-4">
@@ -428,6 +574,7 @@ function TeamCard({
                 min="0"
                 value={editData.wins}
                 onChange={(e) => setEditData({ ...editData, wins: Number(e.target.value) })}
+                onFocus={(e) => e.target.select()}
                 className="text-center text-3xl font-bold text-green-600 border-0 bg-transparent p-0 focus:ring-0"
               />
             ) : (
@@ -445,6 +592,7 @@ function TeamCard({
                 min="0"
                 value={editData.losses}
                 onChange={(e) => setEditData({ ...editData, losses: Number(e.target.value) })}
+                onFocus={(e) => e.target.select()}
                 className="text-center text-3xl font-bold text-red-600 border-0 bg-transparent p-0 focus:ring-0"
               />
             ) : (
@@ -462,6 +610,7 @@ function TeamCard({
                 min="0"
                 value={editData.ties}
                 onChange={(e) => setEditData({ ...editData, ties: Number(e.target.value) })}
+                onFocus={(e) => e.target.select()}
                 className="text-center text-3xl font-bold text-yellow-600 border-0 bg-transparent p-0 focus:ring-0"
               />
             ) : (

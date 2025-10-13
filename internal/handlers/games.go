@@ -427,21 +427,22 @@ func (h *Handlers) UpdateGame(c *fiber.Ctx) error {
 	}
 
 	args = append(args, id)
+	
+	// Build the complete SET clause by joining all parts
+	setClause := ""
+	for i, part := range setParts {
+		if i > 0 {
+			setClause += ", "
+		}
+		setClause += part
+	}
+	
 	updateQuery := fmt.Sprintf(`
-		UPDATE games 
+		UPDATE statstracker.games 
 		SET %s 
 		WHERE id = $%d AND is_deleted = false
 		RETURNING id, week, league, season, team1_id, team1_score, team2_id, team2_score, winning_team_id, version, is_deleted, created_at, updated_at, deleted_at
-	`, fmt.Sprintf("%s", setParts[0]), argIndex)
-
-	for i := 1; i < len(setParts); i++ {
-		updateQuery = fmt.Sprintf(`
-			UPDATE games 
-			SET %s 
-			WHERE id = $%d AND is_deleted = false
-			RETURNING id, week, league, season, team1_id, team1_score, team2_id, team2_score, winning_team_id, version, is_deleted, created_at, updated_at, deleted_at
-		`, fmt.Sprintf("%s, %s", setParts[0], setParts[i]), argIndex)
-	}
+	`, setClause, argIndex)
 
 	var game models.Game
 	err = h.db.QueryRow(context.Background(), updateQuery, args...).Scan(
