@@ -41,6 +41,7 @@ export interface Player {
   season: number;
   is_active: boolean;
   jersey_number?: string;
+  canonical_player_id?: number;
   display_name?: string;
   version: number;
   is_deleted: boolean;

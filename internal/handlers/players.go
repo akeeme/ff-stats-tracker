@@ -42,12 +42,26 @@ func (h *Handlers) CreatePlayer(c *fiber.Ctx) error {
 	}
 
 	now := time.Now()
+	
+	// Check if a player with the same name already exists (case-insensitive)
+	var existingCanonicalID *int
+	canonicalQuery := `
+		SELECT canonical_player_id 
+		FROM statstracker.players 
+		WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) 
+		AND is_deleted = false 
+		LIMIT 1
+	`
+	err = h.db.QueryRow(context.Background(), canonicalQuery, req.Name).Scan(&existingCanonicalID)
+	// If no existing player found, that's okay - we'll set canonical_player_id to the new player's ID after insertion
+	
 	player := models.Player{
-		Name:         req.Name,
-		TeamID:       teamID,
-		Season:       req.Season,
-		IsActive:     isActive,
-		JerseyNumber: req.JerseyNumber,
+		Name:              req.Name,
+		TeamID:            teamID,
+		Season:            req.Season,
+		IsActive:          isActive,
+		JerseyNumber:      req.JerseyNumber,
+		CanonicalPlayerID: existingCanonicalID, // Will be nil if this is a new person
 		BaseModel: models.BaseModel{
 			Version:   1,
 			IsDeleted: false,
@@ -57,14 +71,14 @@ func (h *Handlers) CreatePlayer(c *fiber.Ctx) error {
 	}
 
 	query := `
-		INSERT INTO statstracker.players (name, team_id, season, is_active, jersey_number, version, is_deleted, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO statstracker.players (name, team_id, season, is_active, jersey_number, canonical_player_id, version, is_deleted, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id
 	`
 
 	var id int
 	err = h.db.QueryRow(context.Background(), query,
-		player.Name, player.TeamID, player.Season, player.IsActive, player.JerseyNumber,
+		player.Name, player.TeamID, player.Season, player.IsActive, player.JerseyNumber, player.CanonicalPlayerID,
 		player.Version, player.IsDeleted, player.CreatedAt, player.UpdatedAt,
 	).Scan(&id)
 
@@ -78,6 +92,21 @@ func (h *Handlers) CreatePlayer(c *fiber.Ctx) error {
 	}
 
 	player.ID = id
+	
+	// If this is a new person (no existing canonical_player_id), set it to their own ID
+	if player.CanonicalPlayerID == nil {
+		updateCanonicalQuery := `
+			UPDATE statstracker.players 
+			SET canonical_player_id = $1 
+			WHERE id = $1
+		`
+		_, err = h.db.Exec(context.Background(), updateCanonicalQuery, id)
+		if err != nil {
+			// Log error but don't fail the request
+			fmt.Printf("Warning: Failed to set canonical_player_id for new player %d: %v\n", id, err)
+		}
+		player.CanonicalPlayerID = &id
+	}
 
 	return c.Status(201).JSON(models.PlayerResponse{
 		BaseResponse: models.BaseResponse{
@@ -99,7 +128,7 @@ func (h *Handlers) GetPlayers(c *fiber.Ctx) error {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT p.id, p.name, p.team_id, p.season, p.is_active, p.jersey_number, 
+		SELECT p.id, p.name, p.team_id, p.season, p.is_active, p.jersey_number, p.canonical_player_id,
 		       p.version, p.is_deleted, p.created_at, p.updated_at, p.deleted_at,
 		       t.name as team_name
 		FROM players p
@@ -125,7 +154,7 @@ func (h *Handlers) GetPlayers(c *fiber.Ctx) error {
 		var player models.PlayerWithTeam
 		var teamName *string
 		err := rows.Scan(
-			&player.ID, &player.Name, &player.TeamID, &player.Season, &player.IsActive, &player.JerseyNumber,
+			&player.ID, &player.Name, &player.TeamID, &player.Season, &player.IsActive, &player.JerseyNumber, &player.CanonicalPlayerID,
 			&player.Version, &player.IsDeleted, &player.CreatedAt, &player.UpdatedAt, &player.DeletedAt,
 			&teamName,
 		)
@@ -164,7 +193,7 @@ func (h *Handlers) GetPlayer(c *fiber.Ctx) error {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT p.id, p.name, p.team_id, p.season, p.is_active, p.jersey_number, 
+		SELECT p.id, p.name, p.team_id, p.season, p.is_active, p.jersey_number, p.canonical_player_id,
 		       p.version, p.is_deleted, p.created_at, p.updated_at, p.deleted_at,
 		       t.name as team_name
 		FROM players p
@@ -175,7 +204,7 @@ func (h *Handlers) GetPlayer(c *fiber.Ctx) error {
 	var player models.PlayerWithTeam
 	var teamName *string
 	err = h.db.QueryRow(context.Background(), query, args...).Scan(
-		&player.ID, &player.Name, &player.TeamID, &player.Season, &player.IsActive, &player.JerseyNumber,
+		&player.ID, &player.Name, &player.TeamID, &player.Season, &player.IsActive, &player.JerseyNumber, &player.CanonicalPlayerID,
 		&player.Version, &player.IsDeleted, &player.CreatedAt, &player.UpdatedAt, &player.DeletedAt,
 		&teamName,
 	)
