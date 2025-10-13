@@ -201,7 +201,7 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
                       <StatBox label="Pass TDs" value={careerStats.passing_tds} />
                       <StatBox label="Completions" value={`${careerStats.passes_completed}/${careerStats.passes_attempted}`} />
                       <StatBox label="Comp %" value={`${completionPercentage}%`} />
-                      <StatBox label="INTs" value={careerStats.interceptions_thrown} />
+                      <StatBox label="INTs Thrown" value={careerStats.interceptions_thrown} />
                     </>
                   )}
                   {(careerStats.receptions > 0 || careerStats.targets > 0) && (
@@ -223,7 +223,7 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
                     <>
                       <StatBox label="Flag Pulls" value={careerStats.flag_pulls} />
                       <StatBox label="Sacks" value={careerStats.sacks} />
-                      <StatBox label="INTs" value={careerStats.interceptions} />
+                      <StatBox label="Def INTs" value={careerStats.interceptions} />
                       <StatBox label="PBUs" value={careerStats.pass_breakups} />
                       <StatBox label="Def TDs" value={careerStats.def_td} />
                     </>
@@ -334,7 +334,7 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
                         <StatBox label="Pass TDs" value={stats.passing_tds} />
                         <StatBox label="Completions" value={`${stats.passes_completed}/${stats.passes_attempted}`} />
                         <StatBox label="Comp %" value={`${((stats.passes_completed / stats.passes_attempted) * 100).toFixed(1)}%`} />
-                        <StatBox label="INTs" value={stats.interceptions_thrown} />
+                        <StatBox label="INTs Thrown" value={stats.interceptions_thrown} />
                       </>
                     )}
                     {(stats.receptions > 0 || stats.targets > 0) && (
@@ -356,7 +356,7 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
                       <>
                         <StatBox label="Flag Pulls" value={stats.flag_pulls} />
                         <StatBox label="Sacks" value={stats.sacks} />
-                        <StatBox label="INTs" value={stats.interceptions} />
+                        <StatBox label="Def INTs" value={stats.interceptions} />
                         <StatBox label="PBUs" value={stats.pass_breakups} />
                         <StatBox label="Def TDs" value={stats.def_td} />
                       </>
