@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Game, Player } from '@/lib/api'
-import { Plus, Undo2, ChevronDown, ChevronRight, X, UserPlus, Filter, Flame } from 'lucide-react'
+import { Plus, Undo2, ChevronDown, ChevronRight, X, UserPlus, Filter, Flame, Edit3 } from 'lucide-react'
 
 type StatSubmission = {
   player_name: string
@@ -58,6 +58,7 @@ type HistoryEntry = {
   statType: string
   statLabel: string
   timestamp: number
+  groupId?: string // For grouping related stats (e.g., completion + attempt)
 }
 
 interface QuickStatEntryProps {
@@ -93,6 +94,7 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
   const [feedFilter, setFeedFilter] = useState('')
   const [selectedFeedEntries, setSelectedFeedEntries] = useState<number[]>([])
   const [showFeedFilters, setShowFeedFilters] = useState(false)
+  const [showManualEntry, setShowManualEntry] = useState<{[playerName: string]: boolean}>({})
 
   // Auto-save to localStorage
   useEffect(() => {
@@ -122,7 +124,71 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
     }
   }, [playerStats, history, game.season, game.week, game.team1_name, game.team2_name])
 
-  const incrementStat = (playerName: string, statType: keyof PlayerStats[string], statLabel: string, autoIncrement?: { stat: keyof PlayerStats[string]; label: string }) => {
+  const setStatManually = (playerName: string, statType: keyof PlayerStats[string], value: number) => {
+    setPlayerStats(prev => {
+      const current = prev[playerName] || {
+        passing_tds: 0,
+        passes_completed: 0,
+        passes_attempted: 0,
+        interceptions_thrown: 0,
+        receptions: 0,
+        targets: 0,
+        receiving_tds: 0,
+        drops: 0,
+        first_downs: 0,
+        rushing_tds: 0,
+        rush_attempts: 0,
+        flag_pulls: 0,
+        sacks: 0,
+        interceptions: 0,
+        pass_breakups: 0,
+        def_td: 0,
+      }
+
+      const oldValue = current[statType]
+      const newValue = Math.max(0, value)
+      
+      // Only log if value actually changed
+      if (oldValue !== newValue) {
+        const statLabels: { [key: string]: string } = {
+          passing_tds: 'Pass TD',
+          passes_completed: 'Completion',
+          passes_attempted: 'Attempt',
+          interceptions_thrown: 'INT Thrown',
+          receptions: 'Reception',
+          targets: 'Target',
+          receiving_tds: 'Rec TD',
+          drops: 'Drop',
+          first_downs: '1st Down',
+          rushing_tds: 'Rush TD',
+          rush_attempts: 'Rush Attempt',
+          flag_pulls: 'Flag Pull',
+          sacks: 'Sack',
+          interceptions: 'INT',
+          pass_breakups: 'PBU',
+          def_td: 'Def TD',
+        }
+        
+        const label = statLabels[statType] || statType
+        setHistory(prev => [...prev, { 
+          playerName, 
+          statType, 
+          statLabel: `${label} (Manual: ${oldValue}→${newValue})`, 
+          timestamp: Date.now() 
+        }])
+      }
+
+      return {
+        ...prev,
+        [playerName]: {
+          ...current,
+          [statType]: newValue,
+        },
+      }
+    })
+  }
+
+  const incrementStat = (playerName: string, statType: keyof PlayerStats[string], statLabel: string, autoIncrement?: { stat: keyof PlayerStats[string]; label: string }, groupId?: string) => {
     setPlayerStats(prev => {
       const current = prev[playerName] || {
         passing_tds: 0,
@@ -160,7 +226,7 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
     })
 
     // Add to history
-    setHistory(prev => [...prev, { playerName, statType, statLabel, timestamp: Date.now() }])
+    setHistory(prev => [...prev, { playerName, statType, statLabel, timestamp: Date.now(), groupId }])
   }
 
   const undoLast = () => {
@@ -521,20 +587,34 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                       className="flex-1 cursor-pointer"
                       onClick={() => {
                         if (showFeedFilters) return
-                        // Undo this specific entry
+                        // Undo this specific entry and any grouped entries
                         const entryToUndo = history[originalIdx]
+                        
+                        // Find all entries in the same group (if groupId exists)
+                        const entriesToUndo = entryToUndo.groupId
+                          ? history.map((e, i) => ({ entry: e, index: i }))
+                              .filter(({ entry }) => entry.groupId === entryToUndo.groupId && entry.playerName === entryToUndo.playerName)
+                          : [{ entry: entryToUndo, index: originalIdx }]
+                        
+                        // Undo all stats in the group
                         setPlayerStats(prev => {
                           const current = prev[entryToUndo.playerName]
                           if (!current) return prev
+                          
+                          const updated = { ...current }
+                          entriesToUndo.forEach(({ entry }) => {
+                            updated[entry.statType as keyof typeof current] = Math.max(0, updated[entry.statType as keyof typeof current] - 1)
+                          })
+                          
                           return {
                             ...prev,
-                            [entryToUndo.playerName]: {
-                              ...current,
-                              [entryToUndo.statType]: Math.max(0, current[entryToUndo.statType as keyof typeof current] - 1),
-                            },
+                            [entryToUndo.playerName]: updated,
                           }
                         })
-                        setHistory(prev => prev.filter((_, i) => i !== originalIdx))
+                        
+                        // Remove all entries in the group from history
+                        const indicesToRemove = new Set(entriesToUndo.map(({ index }) => index))
+                        setHistory(prev => prev.filter((_, i) => !indicesToRemove.has(i)))
                       }}
                       title={showFeedFilters ? "" : "Click to undo this entry"}
                     >
@@ -677,7 +757,12 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                         <div className="flex flex-wrap gap-2">
                           <Button
                             size="sm"
-                            onClick={() => incrementStat(player.name, 'passing_tds', 'Pass TD')}
+                            onClick={() => {
+                              const groupId = `${player.name}-${Date.now()}`
+                              incrementStat(player.name, 'passing_tds', 'Pass TD', undefined, groupId)
+                              incrementStat(player.name, 'passes_completed', 'Completion (auto)', undefined, groupId)
+                              incrementStat(player.name, 'passes_attempted', 'Attempt (auto)', undefined, groupId)
+                            }}
                             className="gap-1 relative overflow-hidden bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100 hover:from-blue-200 hover:via-blue-100 hover:to-blue-200 dark:from-blue-900/60 dark:via-blue-800/40 dark:to-blue-900/60 dark:hover:from-blue-800/70 dark:hover:via-blue-700/50 dark:hover:to-blue-800/70 text-blue-700 dark:text-blue-300 border-2 border-blue-200/50 dark:border-blue-700/50 rounded-full shadow-md hover:shadow-lg transition-all font-semibold px-4 min-h-[48px] md:min-h-0 before:absolute before:inset-0 before:rounded-full before:p-[1px] before:bg-gradient-to-br before:from-white/15 before:to-transparent before:pointer-events-none"
                           >
                             <Plus className="h-3 w-3 relative z-10" /> <span className="relative z-10">Pass TD</span>
@@ -685,8 +770,9 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                           <Button
                             size="sm"
                             onClick={() => {
-                              incrementStat(player.name, 'passes_completed', 'Completion')
-                              incrementStat(player.name, 'passes_attempted', 'Attempt (auto)')
+                              const groupId = `${player.name}-${Date.now()}`
+                              incrementStat(player.name, 'passes_completed', 'Completion', undefined, groupId)
+                              incrementStat(player.name, 'passes_attempted', 'Attempt (auto)', undefined, groupId)
                             }}
                             className="gap-1 relative overflow-hidden bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100 hover:from-blue-200 hover:via-blue-100 hover:to-blue-200 dark:from-blue-900/60 dark:via-blue-800/40 dark:to-blue-900/60 dark:hover:from-blue-800/70 dark:hover:via-blue-700/50 dark:hover:to-blue-800/70 text-blue-700 dark:text-blue-300 border-2 border-blue-200/50 dark:border-blue-700/50 rounded-full shadow-md hover:shadow-lg transition-all font-semibold px-4 before:absolute before:inset-0 before:rounded-full before:p-[1px] before:bg-gradient-to-br before:from-white/15 before:to-transparent before:pointer-events-none"
                           >
@@ -706,7 +792,73 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                           >
                             <Plus className="h-3 w-3 relative z-10" /> <span className="relative z-10">INT</span>
                           </Button>
+                          <Button
+                            size="sm"
+                            variant={showManualEntry[player.name] ? "default" : "outline"}
+                            onClick={() => setShowManualEntry(prev => ({ ...prev, [player.name]: !prev[player.name] }))}
+                            className="gap-1"
+                          >
+                            {showManualEntry[player.name] ? (
+                              <>
+                                <X className="h-3 w-3" />
+                                Close
+                              </>
+                            ) : (
+                              <>
+                                <Edit3 className="h-3 w-3" />
+                                Manual
+                              </>
+                            )}
+                          </Button>
                         </div>
+                        {showManualEntry[player.name] && (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-700">
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Pass TDs</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.passing_tds || ''}
+                                onChange={(e) => setStatManually(player.name, 'passing_tds', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Completions</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.passes_completed || ''}
+                                onChange={(e) => setStatManually(player.name, 'passes_completed', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Attempts</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.passes_attempted || ''}
+                                onChange={(e) => setStatManually(player.name, 'passes_attempted', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">INTs</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.interceptions_thrown || ''}
+                                onChange={(e) => setStatManually(player.name, 'interceptions_thrown', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
+                          </div>
+                        )}
                         {stats && (stats.passing_tds > 0 || stats.passes_attempted > 0 || stats.interceptions_thrown > 0) && (
                           <div className="flex items-center gap-6 ml-auto">
                             {stats.passing_tds > 0 && (
@@ -870,9 +1022,10 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                         <Button
                           size="sm"
                           onClick={() => {
-                            incrementStat(player.name, 'receiving_tds', 'Rec TD')
-                            incrementStat(player.name, 'receptions', 'Reception (auto)')
-                            incrementStat(player.name, 'targets', 'Target (auto)')
+                            const groupId = `${player.name}-${Date.now()}`
+                            incrementStat(player.name, 'receiving_tds', 'Rec TD', undefined, groupId)
+                            incrementStat(player.name, 'receptions', 'Reception (auto)', undefined, groupId)
+                            incrementStat(player.name, 'targets', 'Target (auto)', undefined, groupId)
                           }}
                           className="gap-1 relative overflow-hidden bg-gradient-to-br from-green-100 via-green-50 to-green-100 hover:from-green-200 hover:via-green-100 hover:to-green-200 dark:from-green-900/60 dark:via-green-800/40 dark:to-green-900/60 dark:hover:from-green-800/70 dark:hover:via-green-700/50 dark:hover:to-green-800/70 text-green-700 dark:text-green-300 border-2 border-green-200/50 dark:border-green-700/50 rounded-full shadow-md hover:shadow-lg transition-all font-semibold px-4 before:absolute before:inset-0 before:rounded-full before:p-[1px] before:bg-gradient-to-br before:from-white/15 before:to-transparent before:pointer-events-none"
                         >
@@ -880,7 +1033,11 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                         </Button>
                         <Button
                           size="sm"
-                          onClick={() => incrementStat(player.name, 'drops', 'Drop')}
+                          onClick={() => {
+                            const groupId = `${player.name}-${Date.now()}`
+                            incrementStat(player.name, 'drops', 'Drop', undefined, groupId)
+                            incrementStat(player.name, 'targets', 'Target (auto)', undefined, groupId)
+                          }}
                           className="gap-1 relative overflow-hidden bg-gradient-to-br from-red-100 via-red-50 to-red-100 hover:from-red-200 hover:via-red-100 hover:to-red-200 dark:from-red-900/60 dark:via-red-800/40 dark:to-red-900/60 dark:hover:from-red-800/70 dark:hover:via-red-700/50 dark:hover:to-red-800/70 text-red-700 dark:text-red-300 border-2 border-red-200/50 dark:border-red-700/50 rounded-full shadow-md hover:shadow-lg transition-all font-semibold px-4 before:absolute before:inset-0 before:rounded-full before:p-[1px] before:bg-gradient-to-br before:from-white/15 before:to-transparent before:pointer-events-none"
                         >
                           <Plus className="h-3 w-3 relative z-10" /> <span className="relative z-10">Drop</span>
@@ -892,10 +1049,87 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                         >
                           <Plus className="h-3 w-3 relative z-10" /> <span className="relative z-10">1st</span>
                         </Button>
+                        <Button
+                          size="sm"
+                          variant={showManualEntry[player.name] ? "default" : "outline"}
+                          onClick={() => setShowManualEntry(prev => ({ ...prev, [player.name]: !prev[player.name] }))}
+                          className="gap-1"
+                        >
+                          {showManualEntry[player.name] ? (
+                            <>
+                              <X className="h-3 w-3" />
+                              Close
+                            </>
+                          ) : (
+                            <>
+                              <Edit3 className="h-3 w-3" />
+                              Manual
+                            </>
+                          )}
+                        </Button>
                       </div>
+                      {showManualEntry[player.name] && (
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg border border-purple-200 dark:border-purple-700">
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Receptions</label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={stats?.receptions || ''}
+                              onChange={(e) => setStatManually(player.name, 'receptions', Number(e.target.value) || 0)}
+                              className="h-8 text-sm"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Targets</label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={stats?.targets || ''}
+                              onChange={(e) => setStatManually(player.name, 'targets', Number(e.target.value) || 0)}
+                              className="h-8 text-sm"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Rec TDs</label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={stats?.receiving_tds || ''}
+                              onChange={(e) => setStatManually(player.name, 'receiving_tds', Number(e.target.value) || 0)}
+                              className="h-8 text-sm"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Drops</label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={stats?.drops || ''}
+                              onChange={(e) => setStatManually(player.name, 'drops', Number(e.target.value) || 0)}
+                              className="h-8 text-sm"
+                              placeholder="0"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">1st Downs</label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={stats?.first_downs || ''}
+                              onChange={(e) => setStatManually(player.name, 'first_downs', Number(e.target.value) || 0)}
+                              className="h-8 text-sm"
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+                      )}
                       {stats && (stats.receptions > 0 || stats.targets > 0 || stats.receiving_tds > 0 || stats.drops > 0 || stats.first_downs > 0) && (
                         <div className="flex items-center gap-6 ml-auto">
-                          {stats.receptions > 0 && (
+                          {stats.targets > 0 && (
                             <div className="flex items-baseline gap-2">
                               <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-purple-600 to-purple-400 dark:from-purple-400 dark:to-purple-300 leading-none">
                                 {stats.receptions}/{stats.targets}
@@ -1057,8 +1291,9 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                           <Button
                             size="sm"
                             onClick={() => {
-                              incrementStat(player.name, 'rushing_tds', 'Rush TD')
-                              incrementStat(player.name, 'rush_attempts', 'Rush Attempt (auto)')
+                              const groupId = `${player.name}-${Date.now()}`
+                              incrementStat(player.name, 'rushing_tds', 'Rush TD', undefined, groupId)
+                              incrementStat(player.name, 'rush_attempts', 'Rush Attempt (auto)', undefined, groupId)
                             }}
                             className="gap-1 relative overflow-hidden bg-gradient-to-br from-green-100 via-green-50 to-green-100 hover:from-green-200 hover:via-green-100 hover:to-green-200 dark:from-green-900/60 dark:via-green-800/40 dark:to-green-900/60 dark:hover:from-green-800/70 dark:hover:via-green-700/50 dark:hover:to-green-800/70 text-green-700 dark:text-green-300 border-2 border-green-200/50 dark:border-green-700/50 rounded-full shadow-md hover:shadow-lg transition-all font-semibold px-4 before:absolute before:inset-0 before:rounded-full before:p-[1px] before:bg-gradient-to-br before:from-white/15 before:to-transparent before:pointer-events-none"
                           >
@@ -1071,7 +1306,62 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                           >
                             <Plus className="h-3 w-3 relative z-10" /> <span className="relative z-10">1st</span>
                           </Button>
+                          <Button
+                            size="sm"
+                            variant={showManualEntry[player.name] ? "default" : "outline"}
+                            onClick={() => setShowManualEntry(prev => ({ ...prev, [player.name]: !prev[player.name] }))}
+                            className="gap-1"
+                          >
+                            {showManualEntry[player.name] ? (
+                              <>
+                                <X className="h-3 w-3" />
+                                Close
+                              </>
+                            ) : (
+                              <>
+                                <Edit3 className="h-3 w-3" />
+                                Manual
+                              </>
+                            )}
+                          </Button>
                         </div>
+                        {showManualEntry[player.name] && (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-3 bg-orange-50/50 dark:bg-orange-900/10 rounded-lg border border-orange-200 dark:border-orange-700">
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Rush Attempts</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.rush_attempts || ''}
+                                onChange={(e) => setStatManually(player.name, 'rush_attempts', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Rush TDs</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.rushing_tds || ''}
+                                onChange={(e) => setStatManually(player.name, 'rushing_tds', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">1st Downs</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.first_downs || ''}
+                                onChange={(e) => setStatManually(player.name, 'first_downs', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
+                          </div>
+                        )}
                         {stats && (stats.rush_attempts > 0 || stats.rushing_tds > 0 || stats.first_downs > 0) && (
                           <div className="flex items-center gap-6 ml-auto">
                             {stats.rush_attempts > 0 && (
@@ -1253,7 +1543,84 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                           >
                             <Plus className="h-3 w-3 relative z-10" /> <span className="relative z-10">Def TD</span>
                           </Button>
+                          <Button
+                            size="sm"
+                            variant={showManualEntry[player.name] ? "default" : "outline"}
+                            onClick={() => setShowManualEntry(prev => ({ ...prev, [player.name]: !prev[player.name] }))}
+                            className="gap-1"
+                          >
+                            {showManualEntry[player.name] ? (
+                              <>
+                                <X className="h-3 w-3" />
+                                Close
+                              </>
+                            ) : (
+                              <>
+                                <Edit3 className="h-3 w-3" />
+                                Manual
+                              </>
+                            )}
+                          </Button>
                         </div>
+                        {showManualEntry[player.name] && (
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 bg-red-50/50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-700">
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Flag Pulls</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.flag_pulls || ''}
+                                onChange={(e) => setStatManually(player.name, 'flag_pulls', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Sacks</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.sacks || ''}
+                                onChange={(e) => setStatManually(player.name, 'sacks', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">INTs</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.interceptions || ''}
+                                onChange={(e) => setStatManually(player.name, 'interceptions', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">PBUs</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.pass_breakups || ''}
+                                onChange={(e) => setStatManually(player.name, 'pass_breakups', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Def TDs</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.def_td || ''}
+                                onChange={(e) => setStatManually(player.name, 'def_td', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
+                          </div>
+                        )}
                         {stats && (stats.flag_pulls > 0 || stats.sacks > 0 || stats.interceptions > 0 || stats.pass_breakups > 0 || stats.def_td > 0) && (
                           <div className="flex items-center gap-4 ml-auto">
                             {stats.flag_pulls > 0 && (

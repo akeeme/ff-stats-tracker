@@ -10,11 +10,13 @@ import { Users, Loader2, Trash2 } from 'lucide-react'
 import { useAdmin } from '@/hooks'
 import { useToast } from '@/hooks/use-toast'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { PlayerDetailModal } from '@/components/player-detail-modal'
 
 export default function PlayersPage() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null)
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
   const { isAdmin, isLoading: adminLoading } = useAdmin()
 
   // Queries
@@ -26,6 +28,11 @@ export default function PlayersPage() {
   const { data: players = [], isLoading: playersLoading } = useQuery({
     queryKey: ['players'],
     queryFn: api.getPlayers,
+  })
+
+  const { data: stats = [], isLoading: statsLoading } = useQuery({
+    queryKey: ['stats'],
+    queryFn: api.getPlayerStats,
   })
 
   // Mutations
@@ -151,10 +158,20 @@ export default function PlayersPage() {
                 version: player.version
               })}
               isDeleting={deletePlayerMutation.isPending}
+              onClick={() => setSelectedPlayer(player)}
             />
           ))}
         </div>
       )}
+
+      {/* Player Detail Modal */}
+      <PlayerDetailModal
+        player={selectedPlayer}
+        stats={stats}
+        allPlayers={players}
+        isOpen={selectedPlayer !== null}
+        onClose={() => setSelectedPlayer(null)}
+      />
     </div>
   )
 }
@@ -258,7 +275,7 @@ function CreatePlayerForm({
   )
 }
 
-function PlayerCard({ player, isAdmin, onDelete, isDeleting }: { player: Player; isAdmin: boolean; onDelete: () => void; isDeleting: boolean }) {
+function PlayerCard({ player, isAdmin, onDelete, isDeleting, onClick }: { player: Player; isAdmin: boolean; onDelete: () => void; isDeleting: boolean; onClick: () => void }) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   
   const handleDelete = () => {
@@ -267,7 +284,10 @@ function PlayerCard({ player, isAdmin, onDelete, isDeleting }: { player: Player;
   }
   
   return (
-    <div className="relative card-bubbly p-6 border-2 border-gray-200/50 dark:border-gray-600/50 hover:border-blue-400/60 dark:hover:border-blue-500/60 hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80">
+    <div 
+      className="relative card-bubbly p-6 border-2 border-gray-200/50 dark:border-gray-600/50 hover:border-blue-400/60 dark:hover:border-blue-500/60 hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80 cursor-pointer"
+      onClick={onClick}
+    >
       <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400/10 to-transparent rounded-bl-full"></div>
       
       <div className="flex items-center gap-4 mb-4 relative z-10">
@@ -288,7 +308,10 @@ function PlayerCard({ player, isAdmin, onDelete, isDeleting }: { player: Player;
         {isAdmin && (
           <Button 
             size="sm" 
-            onClick={() => setShowDeleteDialog(true)} 
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowDeleteDialog(true)
+            }} 
             className="btn-ghost text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
             disabled={isDeleting}
           >

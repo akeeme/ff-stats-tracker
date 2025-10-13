@@ -29,12 +29,13 @@ type Team struct {
 
 // Player represents a player in the system
 type Player struct {
-	ID           int     `json:"id" db:"id"`
-	Name         string  `json:"name" db:"name"`
-	TeamID       int     `json:"team_id" db:"team_id"`
-	Season       int     `json:"season" db:"season"`
-	IsActive     bool    `json:"is_active" db:"is_active"`
-	JerseyNumber *string `json:"jersey_number" db:"jersey_number"`
+	ID                int     `json:"id" db:"id"`
+	Name              string  `json:"name" db:"name"`
+	TeamID            int     `json:"team_id" db:"team_id"`
+	Season            int     `json:"season" db:"season"`
+	IsActive          bool    `json:"is_active" db:"is_active"`
+	JerseyNumber      *string `json:"jersey_number" db:"jersey_number"`
+	CanonicalPlayerID *int    `json:"canonical_player_id" db:"canonical_player_id"`
 	BaseModel
 }
 
