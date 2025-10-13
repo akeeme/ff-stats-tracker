@@ -1,19 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api, Game, Team } from '@/lib/api'
-import { Calendar, Trophy, Edit, Trash2 } from 'lucide-react'
+import { Calendar, Trophy, Edit, Trash2, Loader2 } from 'lucide-react'
 import { useAdmin } from '@/hooks'
+import { useToast } from '@/hooks/use-toast'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 
 export default function GamesPage() {
   const queryClient = useQueryClient()
   const router = useRouter()
-  const [selectedSeason, setSelectedSeason] = useState<number>(1)
+  const { toast } = useToast()
+  const [selectedSeason, setSelectedSeason] = useState<number | null>(null)
   const { isAdmin, isLoading: adminLoading } = useAdmin()
 
   // Queries
@@ -32,6 +35,18 @@ export default function GamesPage() {
     mutationFn: api.createGame,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['games'] })
+      toast({
+        title: "Game created",
+        description: "The game has been successfully created.",
+        variant: "success",
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create game. Please try again.",
+        variant: "destructive",
+      })
     },
   })
 
@@ -40,6 +55,18 @@ export default function GamesPage() {
       api.updateGame(id, game, version),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['games'] })
+      toast({
+        title: "Game updated",
+        description: "The game has been successfully updated.",
+        variant: "success",
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update game. Please try again.",
+        variant: "destructive",
+      })
     },
   })
 
@@ -48,16 +75,36 @@ export default function GamesPage() {
       api.deleteGame(id, version),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['games'] })
+      toast({
+        title: "Game deleted",
+        description: "The game has been successfully deleted.",
+        variant: "success",
+      })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete game. Please try again.",
+        variant: "destructive",
+      })
     },
   })
 
   // Get unique seasons with null checks
   const seasons = teams ? Array.from(new Set(teams.map(team => team.season))).sort((a, b) => b - a) : []
-  const currentSeasonTeams = teams ? teams.filter(team => team.season === selectedSeason) : []
-  const currentSeasonGames = games ? games.filter(game => game.season === selectedSeason) : []
+  
+  // Set initial season to the latest when data loads
+  useEffect(() => {
+    if (seasons.length > 0 && selectedSeason === null) {
+      setSelectedSeason(seasons[0]) // seasons is already sorted descending, so [0] is the latest
+    }
+  }, [seasons, selectedSeason])
+  
+  const currentSeasonTeams = teams && selectedSeason ? teams.filter(team => team.season === selectedSeason) : []
+  const currentSeasonGames = games && selectedSeason ? games.filter(game => game.season === selectedSeason) : []
 
   // Show loading state
-  if (teamsLoading || gamesLoading || adminLoading) {
+  if (teamsLoading || gamesLoading || adminLoading || selectedSeason === null) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
@@ -101,6 +148,7 @@ export default function GamesPage() {
           teams={currentSeasonTeams}
           season={selectedSeason}
           onSubmit={(game) => createGameMutation.mutate(game)}
+          isLoading={createGameMutation.isPending}
         />
       )}
       
@@ -131,6 +179,8 @@ export default function GamesPage() {
                 version: game.version
               })}
               onClick={() => router.push(`/stats?gameId=${game.id}`)}
+              isUpdating={updateGameMutation.isPending}
+              isDeleting={deleteGameMutation.isPending}
             />
           ))}
         </div>
@@ -142,15 +192,19 @@ export default function GamesPage() {
 function CreateGameForm({ 
   teams, 
   season, 
-  onSubmit 
+  onSubmit,
+  isLoading
 }: { 
   teams: Team[]
   season: number
-  onSubmit: (game: { team1_name: string; team2_name: string; week: number; season: number; league: string }) => void 
+  onSubmit: (game: { team1_name: string; team2_name: string; team1_score: number; team2_score: number; week: number; season: number; league: string; winning_team_name?: string }) => void
+  isLoading: boolean
 }) {
   const [formData, setFormData] = useState({
     team1_name: '',
     team2_name: '',
+    team1_score: '' as any,
+    team2_score: '' as any,
     week: 1,
     winning_team_name: '',
     season: season,
@@ -161,10 +215,30 @@ function CreateGameForm({
     // Get league from the selected team
     const selectedTeam = teams.find(t => t.name === formData.team1_name)
     const league = selectedTeam?.league || ''
-    onSubmit({ ...formData, league })
+    
+    // Determine winning team based on scores
+    const team1Score = Number(formData.team1_score) || 0
+    const team2Score = Number(formData.team2_score) || 0
+    
+    let winningTeam = formData.winning_team_name
+    if (team1Score > team2Score) {
+      winningTeam = formData.team1_name
+    } else if (team2Score > team1Score) {
+      winningTeam = formData.team2_name
+    }
+    
+    onSubmit({ 
+      ...formData,
+      team1_score: team1Score,
+      team2_score: team2Score,
+      league,
+      winning_team_name: winningTeam || undefined
+    })
     setFormData({ 
       team1_name: '', 
       team2_name: '', 
+      team1_score: '' as any,
+      team2_score: '' as any,
       week: 1, 
       winning_team_name: '',
       season: season
@@ -185,39 +259,69 @@ function CreateGameForm({
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <Label htmlFor="team1" className="text-sm font-semibold text-gray-700 mb-2 block">Team 1</Label>
-            <select
-              id="team1"
-              value={formData.team1_name}
-              onChange={(e) => setFormData({ ...formData, team1_name: e.target.value })}
-              className="input-modern"
-              required
-            >
-              <option value="">Select Team 1</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.name}>
-                  {team.name}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="team1" className="text-sm font-semibold text-gray-700 mb-2 block">Team 1</Label>
+              <select
+                id="team1"
+                value={formData.team1_name}
+                onChange={(e) => setFormData({ ...formData, team1_name: e.target.value })}
+                className="input-modern"
+                required
+              >
+                <option value="">Select Team 1</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.name}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="team1_score" className="text-sm font-semibold text-gray-700 mb-2 block">Team 1 Score</Label>
+              <Input
+                id="team1_score"
+                type="number"
+                min="0"
+                value={formData.team1_score}
+                onChange={(e) => setFormData({ ...formData, team1_score: e.target.value as any })}
+                onFocus={(e) => e.target.select()}
+                className="input-modern"
+                placeholder="0"
+              />
+            </div>
           </div>
-          <div>
-            <Label htmlFor="team2" className="text-sm font-semibold text-gray-700 mb-2 block">Team 2</Label>
-            <select
-              id="team2"
-              value={formData.team2_name}
-              onChange={(e) => setFormData({ ...formData, team2_name: e.target.value })}
-              className="input-modern"
-              required
-            >
-              <option value="">Select Team 2</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.name}>
-                  {team.name}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="team2" className="text-sm font-semibold text-gray-700 mb-2 block">Team 2</Label>
+              <select
+                id="team2"
+                value={formData.team2_name}
+                onChange={(e) => setFormData({ ...formData, team2_name: e.target.value })}
+                className="input-modern"
+                required
+              >
+                <option value="">Select Team 2</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.name}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="team2_score" className="text-sm font-semibold text-gray-700 mb-2 block">Team 2 Score</Label>
+              <Input
+                id="team2_score"
+                type="number"
+                min="0"
+                value={formData.team2_score}
+                onChange={(e) => setFormData({ ...formData, team2_score: e.target.value as any })}
+                onFocus={(e) => e.target.select()}
+                className="input-modern"
+                placeholder="0"
+              />
+            </div>
           </div>
         </div>
         
@@ -236,26 +340,19 @@ function CreateGameForm({
           />
         </div>
         
-        <div>
-          <Label htmlFor="winning-team" className="text-sm font-semibold text-gray-700 mb-2 block">Winning Team</Label>
-          <select
-            id="winning-team"
-            value={formData.winning_team_name}
-            onChange={(e) => setFormData({ ...formData, winning_team_name: e.target.value })}
-            className="input-modern"
-          >
-            <option value="">Select Winning Team (Optional)</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.name}>
-                {team.name}
-              </option>
-            ))}
-          </select>
-        </div>
         
-        <Button type="submit" className="btn-primary w-full">
-          <Calendar className="h-4 w-4 mr-2" />
-          Create Game
+        <Button type="submit" className="w-full btn-primary" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            <>
+              <Calendar className="h-4 w-4 mr-2" />
+              Create Game
+            </>
+          )}
         </Button>
       </form>
     </div>
@@ -268,7 +365,9 @@ function GameCard({
   isAdmin,
   onUpdate, 
   onDelete,
-  onClick
+  onClick,
+  isUpdating,
+  isDeleting
 }: { 
   game: Game
   teams: Team[]
@@ -276,18 +375,43 @@ function GameCard({
   onUpdate: (game: Partial<Game>) => void
   onDelete: () => void
   onClick: () => void
+  isUpdating: boolean
+  isDeleting: boolean
 }) {
   const [isEditing, setIsEditing] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [editData, setEditData] = useState({
     team1_name: game.team1_name,
     team2_name: game.team2_name,
+    team1_score: game.team1_score,
+    team2_score: game.team2_score,
     week: game.week,
+    league: game.league,
+    season: game.season,
     winning_team_name: game.winning_team_name || '',
   })
 
   const handleSave = () => {
-    onUpdate(editData)
+    // Determine winning team based on scores
+    let winningTeam = editData.winning_team_name
+    if (editData.team1_score > editData.team2_score) {
+      winningTeam = editData.team1_name
+    } else if (editData.team2_score > editData.team1_score) {
+      winningTeam = editData.team2_name
+    } else {
+      winningTeam = '' // Tie
+    }
+    
+    onUpdate({
+      ...editData,
+      winning_team_name: winningTeam || undefined
+    })
     setIsEditing(false)
+  }
+  
+  const handleDelete = () => {
+    onDelete()
+    setShowDeleteDialog(false)
   }
 
   return (
@@ -309,12 +433,12 @@ function GameCard({
           </div>
           <div className="flex-1">
             {isAdmin && isEditing ? (
-              <div className="space-y-2">
+              <div className="space-y-2 w-full">
                 <div className="flex gap-2 items-center">
                   <select
                     value={editData.team1_name}
                     onChange={(e) => setEditData({ ...editData, team1_name: e.target.value })}
-                    className="text-sm font-bold border rounded px-2 py-1"
+                    className="text-sm font-bold border rounded px-2 py-1 flex-1"
                   >
                     {teams.map((team) => (
                       <option key={team.id} value={team.name}>
@@ -322,11 +446,21 @@ function GameCard({
                       </option>
                     ))}
                   </select>
-                  <span className="text-gray-400 font-bold">vs</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editData.team1_score}
+                    onChange={(e) => setEditData({ ...editData, team1_score: Number(e.target.value) })}
+                    onFocus={(e) => e.target.select()}
+                    className="w-16 text-center"
+                    placeholder="0"
+                  />
+                </div>
+                <div className="flex gap-2 items-center">
                   <select
                     value={editData.team2_name}
                     onChange={(e) => setEditData({ ...editData, team2_name: e.target.value })}
-                    className="text-sm font-bold border rounded px-2 py-1"
+                    className="text-sm font-bold border rounded px-2 py-1 flex-1"
                   >
                     {teams.map((team) => (
                       <option key={team.id} value={team.name}>
@@ -334,6 +468,15 @@ function GameCard({
                       </option>
                     ))}
                   </select>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editData.team2_score}
+                    onChange={(e) => setEditData({ ...editData, team2_score: Number(e.target.value) })}
+                    onFocus={(e) => e.target.select()}
+                    className="w-16 text-center"
+                    placeholder="0"
+                  />
                 </div>
                 <Input
                   type="number"
@@ -348,7 +491,7 @@ function GameCard({
             ) : (
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  {game.team1_name} <span className="text-gray-400 dark:text-gray-500">vs</span> {game.team2_name}
+                  {game.team1_name} ({game.team1_score}) <span className="text-gray-400 dark:text-gray-500">vs</span> {game.team2_name} ({game.team2_score})
                 </h3>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="inline-block px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs font-bold">
@@ -365,26 +508,55 @@ function GameCard({
           <div className="flex gap-2">
             {isEditing ? (
               <>
-                <Button size="sm" onClick={handleSave} className="btn-primary">
-                  Save
+                <Button size="sm" onClick={handleSave} className="btn-primary" disabled={isUpdating}>
+                  {isUpdating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Save'
+                  )}
                 </Button>
-                <Button size="sm" onClick={() => setIsEditing(false)} className="btn-secondary">
+                <Button size="sm" onClick={() => setIsEditing(false)} className="btn-secondary" disabled={isUpdating}>
                   Cancel
                 </Button>
               </>
             ) : (
               <>
-                <Button size="sm" onClick={() => setIsEditing(true)} className="btn-ghost">
+                <Button size="sm" onClick={() => setIsEditing(true)} className="btn-ghost" disabled={isDeleting}>
                   <Edit className="h-4 w-4" />
                 </Button>
-                <Button size="sm" onClick={onDelete} className="btn-ghost text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20">
-                  <Trash2 className="h-4 w-4" />
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowDeleteDialog(true)} 
+                  className="btn-ghost text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
                 </Button>
               </>
             )}
           </div>
         )}
       </div>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Game?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the game <strong>{game.team1_name} vs {game.team2_name}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       {game.winning_team_name && (
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
