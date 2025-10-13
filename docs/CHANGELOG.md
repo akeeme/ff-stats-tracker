@@ -1,6 +1,42 @@
 # Changelog
 
-## 2025-10-13
+## 2025-10-13 (Part 2)
+
+### Player Stats & Manual Entry Enhancements
+
+#### ✨ Added
+- **Manual Stat Entry**: Added "Manual" button to all position sections (QB, WR, RB, DEF) in Quick Stat Entry
+  - Toggle button changes to "Close" with X icon when open
+  - Number input fields for all relevant stats per position
+  - Empty inputs show placeholder "0" instead of actual 0 for better UX
+  - Manual changes are logged in game feed with format "Stat (Manual: old→new)"
+- **Player Detail Modal**: Comprehensive player statistics view accessible by clicking any player card
+  - **Overview Tab**: Career totals, per-game averages, catch/completion percentages, recent form (last 3 games)
+  - **By Season Tab**: Season-by-season breakdown with games played and all stats
+  - **Game Log Tab**: Complete game-by-game history with color-coded inline stats
+  - **Records Tab**: Career highs (single-game bests) and milestone progress bars
+- **Canonical Player ID System**: Players are now linked across seasons/teams
+  - Same person tracked across multiple seasons with different team assignments
+  - Player detail modal shows full career stats regardless of which season's record is clicked
+  - Auto-links new players with existing players of the same name (case-insensitive)
+
+#### 🎨 Improved
+- **Game Log Display**: Stats now flow horizontally with proper wrapping and color coding
+  - Green for TDs, Blue for completions, Purple for receptions, Red for drops/INTs
+  - Compact inline format instead of rigid grid layout
+- **Player Cards**: Now clickable to open detailed stats modal
+  - Delete button prevents card click with event propagation stop
+
+#### 🔧 Technical
+- Added `canonical_player_id` column to players table with migration script
+- Updated Player model in backend (Go) and frontend (TypeScript)
+- CreatePlayer handler auto-assigns canonical_player_id based on name matching
+- Player detail modal filters stats using canonical_player_id to aggregate career data
+- Created comprehensive migration documentation in `CANONICAL_PLAYER_ID_MIGRATION.md`
+
+---
+
+## 2025-10-13 (Part 1)
 
 ### Quality of Life Improvements & Dashboard Redesign
 
