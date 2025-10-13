@@ -204,13 +204,13 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
                       <StatBox label="INTs" value={careerStats.interceptions_thrown} />
                     </>
                   )}
-                  {careerStats.receptions > 0 && (
+                  {(careerStats.receptions > 0 || careerStats.targets > 0) && (
                     <>
-                      <StatBox label="Receptions" value={careerStats.receptions} />
-                      <StatBox label="Targets" value={careerStats.targets} />
-                      <StatBox label="Catch %" value={`${catchPercentage}%`} />
-                      <StatBox label="Rec TDs" value={careerStats.receiving_tds} />
-                      <StatBox label="Drops" value={careerStats.drops} />
+                      {careerStats.receptions > 0 && <StatBox label="Receptions" value={careerStats.receptions} />}
+                      {careerStats.targets > 0 && <StatBox label="Targets" value={careerStats.targets} />}
+                      {careerStats.targets > 0 && <StatBox label="Catch %" value={`${catchPercentage}%`} />}
+                      {careerStats.receiving_tds > 0 && <StatBox label="Rec TDs" value={careerStats.receiving_tds} />}
+                      {careerStats.drops > 0 && <StatBox label="Drops" value={careerStats.drops} />}
                     </>
                   )}
                   {careerStats.rush_attempts > 0 && (
@@ -252,11 +252,11 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
                         <StatBox label="Comp/G" value={perGameAvg.passes_completed} />
                       </>
                     )}
-                    {careerStats.receptions > 0 && (
+                    {(careerStats.receptions > 0 || careerStats.targets > 0) && (
                       <>
-                        <StatBox label="Rec/G" value={perGameAvg.receptions} />
-                        <StatBox label="Targets/G" value={perGameAvg.targets} />
-                        <StatBox label="Rec TD/G" value={perGameAvg.receiving_tds} />
+                        {careerStats.receptions > 0 && <StatBox label="Rec/G" value={perGameAvg.receptions} />}
+                        {careerStats.targets > 0 && <StatBox label="Targets/G" value={perGameAvg.targets} />}
+                        {careerStats.receiving_tds > 0 && <StatBox label="Rec TD/G" value={perGameAvg.receiving_tds} />}
                       </>
                     )}
                     {careerStats.rush_attempts > 0 && (
@@ -337,13 +337,13 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
                         <StatBox label="INTs" value={stats.interceptions_thrown} />
                       </>
                     )}
-                    {stats.receptions > 0 && (
+                    {(stats.receptions > 0 || stats.targets > 0) && (
                       <>
-                        <StatBox label="Receptions" value={stats.receptions} />
-                        <StatBox label="Targets" value={stats.targets} />
-                        <StatBox label="Catch %" value={`${((stats.receptions / stats.targets) * 100).toFixed(1)}%`} />
-                        <StatBox label="Rec TDs" value={stats.receiving_tds} />
-                        <StatBox label="Drops" value={stats.drops} />
+                        {stats.receptions > 0 && <StatBox label="Receptions" value={stats.receptions} />}
+                        {stats.targets > 0 && <StatBox label="Targets" value={stats.targets} />}
+                        {stats.targets > 0 && <StatBox label="Catch %" value={`${((stats.receptions / stats.targets) * 100).toFixed(1)}%`} />}
+                        {stats.receiving_tds > 0 && <StatBox label="Rec TDs" value={stats.receiving_tds} />}
+                        {stats.drops > 0 && <StatBox label="Drops" value={stats.drops} />}
                       </>
                     )}
                     {stats.rush_attempts > 0 && (
