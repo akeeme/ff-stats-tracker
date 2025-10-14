@@ -211,6 +211,11 @@ function CreateGameForm({
     season: season,
   })
 
+  // Update form season when prop changes
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, season }))
+  }, [season])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // Get league from the selected team
@@ -304,11 +309,13 @@ function CreateGameForm({
                 required
               >
                 <option value="">Select Team 2</option>
-                {teams.map((team) => (
-                  <option key={team.id} value={team.name}>
-                    {team.name}
-                  </option>
-                ))}
+                {teams
+                  .filter(team => team.name !== formData.team1_name)
+                  .map((team) => (
+                    <option key={team.id} value={team.name}>
+                      {team.name}
+                    </option>
+                  ))}
               </select>
             </div>
             <div>
