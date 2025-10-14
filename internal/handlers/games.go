@@ -91,11 +91,18 @@ func (h *Handlers) CreateGame(c *fiber.Ctx) error {
 		}
 	}
 
+	// Set default game_type if not provided
+	gameType := "regular"
+	if req.GameType != "" {
+		gameType = req.GameType
+	}
+
 	now := time.Now()
 	game := models.Game{
 		Week:          req.Week,
 		League:        req.League,
 		Season:        req.Season,
+		GameType:      gameType,
 		Team1ID:       &team1ID,
 		Team1Score:    team1Score,
 		Team2ID:       &team2ID,
@@ -110,14 +117,14 @@ func (h *Handlers) CreateGame(c *fiber.Ctx) error {
 	}
 
 	query := `
-		INSERT INTO statstracker.games (week, league, season, team1_id, team1_score, team2_id, team2_score, winning_team_id, version, is_deleted, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		INSERT INTO statstracker.games (week, league, season, game_type, team1_id, team1_score, team2_id, team2_score, winning_team_id, version, is_deleted, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id
 	`
 
 	var id int
 	err = h.db.QueryRow(context.Background(), query,
-		game.Week, game.League, game.Season, game.Team1ID, game.Team1Score,
+		game.Week, game.League, game.Season, game.GameType, game.Team1ID, game.Team1Score,
 		game.Team2ID, game.Team2Score, game.WinningTeamID,
 		game.Version, game.IsDeleted, game.CreatedAt, game.UpdatedAt,
 	).Scan(&id)
@@ -153,13 +160,13 @@ func (h *Handlers) GetGames(c *fiber.Ctx) error {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT g.id, g.week, g.league, g.season, g.team1_id, g.team1_score, g.team2_id, g.team2_score, 
+		SELECT g.id, g.week, g.league, g.season, g.game_type, g.team1_id, g.team1_score, g.team2_id, g.team2_score, 
 		       g.winning_team_id, g.version, g.is_deleted, g.created_at, g.updated_at, g.deleted_at,
 		       t1.name as team1_name, t2.name as team2_name, wt.name as winning_team_name
-		FROM games g
-		LEFT JOIN teams t1 ON g.team1_id = t1.id
-		LEFT JOIN teams t2 ON g.team2_id = t2.id
-		LEFT JOIN teams wt ON g.winning_team_id = wt.id
+		FROM statstracker.games g
+		LEFT JOIN statstracker.teams t1 ON g.team1_id = t1.id
+		LEFT JOIN statstracker.teams t2 ON g.team2_id = t2.id
+		LEFT JOIN statstracker.teams wt ON g.winning_team_id = wt.id
 		%s
 		ORDER BY g.id
 		LIMIT $1 OFFSET $2
@@ -182,7 +189,7 @@ func (h *Handlers) GetGames(c *fiber.Ctx) error {
 		var team1Name, team2Name *string
 		var winningTeamName *string
 		err := rows.Scan(
-			&game.ID, &game.Week, &game.League, &game.Season, &game.Team1ID, &game.Team1Score,
+			&game.ID, &game.Week, &game.League, &game.Season, &game.GameType, &game.Team1ID, &game.Team1Score,
 			&game.Team2ID, &game.Team2Score, &game.WinningTeamID,
 			&game.Version, &game.IsDeleted, &game.CreatedAt, &game.UpdatedAt, &game.DeletedAt,
 			&team1Name, &team2Name, &winningTeamName,
@@ -398,6 +405,11 @@ func (h *Handlers) UpdateGame(c *fiber.Ctx) error {
 	if req.Season != nil {
 		setParts = append(setParts, fmt.Sprintf("season = $%d", argIndex))
 		args = append(args, *req.Season)
+		argIndex++
+	}
+	if req.GameType != nil {
+		setParts = append(setParts, fmt.Sprintf("game_type = $%d", argIndex))
+		args = append(args, *req.GameType)
 		argIndex++
 	}
 	if req.Team1ID != nil {

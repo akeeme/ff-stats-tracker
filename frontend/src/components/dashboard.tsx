@@ -11,8 +11,32 @@ import { Label } from '@/components/ui/label'
 export function Dashboard() {
   const [selectedTab, setSelectedTab] = useState<'latest' | 'week' | 'season' | 'alltime'>('latest')
   const { data: games = [] } = useGamesWithRealtime()
-  const { data: allStats = [] } = usePlayerStatsWithRealtime()
   const { data: teams = [] } = useTeamsWithRealtime()
+  
+  // Get current season for filtering stats
+  const currentSeason = games.length > 0 
+    ? Math.max(...games.map(g => g.season))
+    : undefined
+  
+  // State for selected season in season leaders
+  const [selectedSeasonForLeaders, setSelectedSeasonForLeaders] = useState<number | undefined>(currentSeason)
+  
+  // Update selected season when current season changes
+  useEffect(() => {
+    if (currentSeason && !selectedSeasonForLeaders) {
+      setSelectedSeasonForLeaders(currentSeason)
+    }
+  }, [currentSeason, selectedSeasonForLeaders])
+  
+  // Fetch stats for current season only (for 'season' tab) or all stats (for 'alltime' tab)
+  const statsParams = selectedTab === 'alltime' 
+    ? undefined 
+    : selectedTab === 'season' && selectedSeasonForLeaders
+    ? { season: selectedSeasonForLeaders }
+    : currentSeason 
+    ? { season: currentSeason } 
+    : undefined
+  const { data: allStats = [] } = usePlayerStatsWithRealtime(statsParams)
 
   // Get latest game
   const latestGame = games.length > 0 
@@ -99,7 +123,12 @@ export function Dashboard() {
             </TabsContent>
 
             <TabsContent value="season" className="mt-0 sm:mt-6">
-              <SeasonLeaders stats={allStats} games={games} />
+              <SeasonLeaders 
+                stats={allStats} 
+                games={games} 
+                selectedSeason={selectedSeasonForLeaders || currentSeason || 1}
+                onSeasonChange={setSelectedSeasonForLeaders}
+              />
             </TabsContent>
 
             <TabsContent value="alltime" className="mt-0 sm:mt-6">
@@ -585,18 +614,21 @@ function WeekLeaders({ stats, games }: { stats: PlayerStats[]; games: Game[] }) 
 }
 
 // Season Leaders Component
-function SeasonLeaders({ stats, games }: { stats: PlayerStats[]; games: Game[] }) {
-  // Get current season from latest game
-  const currentSeason = games.length > 0 
-    ? Math.max(...games.map(g => g.season))
-    : 1
+function SeasonLeaders({ stats, games, selectedSeason, onSeasonChange }: { 
+  stats: PlayerStats[]; 
+  games: Game[];
+  selectedSeason: number;
+  onSeasonChange: (season: number) => void;
+}) {
+  // Get available seasons
+  const availableSeasons = Array.from(new Set(games.map(g => g.season))).sort((a, b) => b - a)
 
-  // Filter stats to current season only
-  const currentSeasonGameIds = games
-    .filter(g => g.season === currentSeason)
+  // Filter stats to selected season only
+  const seasonGameIds = games
+    .filter(g => g.season === selectedSeason)
     .map(g => g.id)
   
-  const currentSeasonStats = stats.filter(s => currentSeasonGameIds.includes(s.game_id))
+  const currentSeasonStats = stats.filter(s => seasonGameIds.includes(s.game_id))
 
   // Aggregate stats by player for the current season
   const playerTotals: { [key: string]: PlayerStats } = {}
@@ -622,7 +654,27 @@ function SeasonLeaders({ stats, games }: { stats: PlayerStats[]; games: Game[] }
 
   const aggregatedStats = Object.values(playerTotals)
 
-  return <StatLeaders stats={aggregatedStats} title={`Season ${currentSeason} Leaders`} />
+  return (
+    <div className="space-y-4">
+      {/* Season Selector */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Season {selectedSeason} Leaders</h3>
+        <select
+          value={selectedSeason}
+          onChange={(e) => onSeasonChange(Number(e.target.value))}
+          className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+        >
+          {availableSeasons.map(season => (
+            <option key={season} value={season}>
+              Season {season}
+            </option>
+          ))}
+        </select>
+      </div>
+      
+      <StatLeaders stats={aggregatedStats} title="" />
+    </div>
+  )
 }
 
 // All-Time Leaders Component

@@ -31,31 +31,49 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <WhatsNewModal />
       
       {/* Modern Header */}
-      <div className="relative bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 shadow-xl border-b-2 border-red-500/30">
-        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-transparent to-red-500/5"></div>
+      <div className="sticky top-0 z-50 relative bg-gradient-to-r from-slate-900 via-gray-900 to-slate-900 dark:from-black dark:via-gray-950 dark:to-black shadow-2xl border-b border-red-500/20">
+        {/* Animated gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-purple-500/10 to-red-500/10 opacity-50"></div>
+        
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20"></div>
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex items-center justify-between h-20">
-            <Link href="/" className="flex items-center space-x-4 group">
-              <div className="relative w-14 h-14 bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/50 group-hover:shadow-red-500/70 transition-all duration-300 group-hover:scale-105 group-hover:rotate-3">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl"></div>
-                <span className="text-4xl relative z-10" role="img" aria-label="rhino">🦏</span>
+            {/* Logo and Title */}
+            <Link href="/" className="flex items-center space-x-3 sm:space-x-4 group">
+              <div className="relative w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/50 group-hover:shadow-red-500/80 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 ring-2 ring-red-400/30 group-hover:ring-red-400/50">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent rounded-2xl"></div>
+                <div className="absolute inset-0 bg-gradient-to-tl from-black/20 to-transparent rounded-2xl"></div>
+                <span className="text-3xl sm:text-4xl relative z-10 drop-shadow-lg" role="img" aria-label="rhino">🦏</span>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">
+              <div className="hidden sm:block">
+                <h1 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-white via-gray-100 to-gray-200 bg-clip-text text-transparent drop-shadow-lg tracking-tight">
                   Rhinos Flag Football Stats
                 </h1>
-                <p className="text-gray-400 text-sm">Rhinos Team performance made by keem!</p>
+                <p className="text-gray-400 text-xs sm:text-sm font-medium tracking-wide">
+                  Team performance made by <span className="text-red-400 font-semibold">keem</span>
+                </p>
+              </div>
+              <div className="sm:hidden">
+                <h1 className="text-xl font-black bg-gradient-to-r from-white via-gray-100 to-gray-200 bg-clip-text text-transparent drop-shadow-lg">
+                  Rhinos Stats
+                </h1>
+                <p className="text-gray-400 text-xs">by keem</p>
               </div>
             </Link>
-            <div className="flex items-center space-x-3">
+            
+            {/* Right Side Controls */}
+            <div className="flex items-center space-x-2 sm:space-x-3">
               {/* Admin Badge */}
               {isAdmin && (
-                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-xl border border-green-500/50 backdrop-blur-sm shadow-lg shadow-green-500/20">
-                  <Shield className="h-4 w-4 text-green-400" />
-                  <span className="text-sm font-bold text-green-300">Admin</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-emerald-500/20 rounded-xl border border-emerald-500/40 backdrop-blur-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all duration-200">
+                  <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-400" />
+                  <span className="text-xs sm:text-sm font-bold text-emerald-300 hidden sm:inline">Admin</span>
+                  <span className="text-xs sm:text-sm font-bold text-emerald-300 sm:hidden">A</span>
                   <button
                     onClick={clearAdmin}
-                    className="ml-1 text-xs text-green-400 hover:text-green-200 underline transition-colors"
+                    className="ml-0.5 sm:ml-1 text-[10px] sm:text-xs text-emerald-400 hover:text-emerald-200 underline transition-colors"
                   >
                     Logout
                   </button>
@@ -65,18 +83,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {/* Dark Mode Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-3 rounded-xl bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700 hover:border-gray-600 transition-all duration-200 shadow-lg backdrop-blur-sm"
+                className="p-2.5 sm:p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all duration-200 shadow-lg backdrop-blur-sm group"
                 aria-label="Toggle dark mode"
               >
                 {theme === 'dark' ? (
-                  <Sun className="h-5 w-5 text-yellow-400" />
+                  <Sun className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400 group-hover:text-yellow-300 transition-colors" />
                 ) : (
-                  <Moon className="h-5 w-5 text-gray-300" />
+                  <Moon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-300 group-hover:text-white transition-colors" />
                 )}
               </button>
             </div>
           </div>
         </div>
+        
+        {/* Bottom glow effect */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent"></div>
       </div>
 
       {/* Main Content */}
