@@ -53,7 +53,7 @@ export function StatsViewer() {
     : []
 
   // Stats are already filtered by the backend based on statsParams
-  const gameStats = allStats
+  const gameStats = allStats || []
 
   // Group stats by category
   const qbStats = gameStats.filter(s => 
@@ -91,7 +91,7 @@ export function StatsViewer() {
   }
 
   // Season stats are already filtered by the backend when viewMode is 'season'
-  const seasonStats = viewMode === 'season' ? allStats : []
+  const seasonStats = viewMode === 'season' ? (allStats || []) : []
 
   return (
     <div className="space-y-8">
@@ -496,7 +496,10 @@ function SeasonLeaderboard({ stats, season }: { stats: PlayerStats[]; season: nu
   // Aggregate stats by player
   const playerTotals: { [key: string]: PlayerStats } = {}
   
-  stats.forEach(stat => {
+  // Handle null/undefined stats
+  const safeStats = stats || []
+  
+  safeStats.forEach(stat => {
     if (!playerTotals[stat.player_name]) {
       playerTotals[stat.player_name] = { ...stat }
     } else {
