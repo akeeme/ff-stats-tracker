@@ -11,12 +11,14 @@ import { Calendar, Trophy, Edit, Trash2, Loader2 } from 'lucide-react'
 import { useAdmin } from '@/hooks'
 import { useToast } from '@/hooks/use-toast'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { GameTypeBadge } from '@/components/game-type-badge'
 
 export default function GamesPage() {
   const queryClient = useQueryClient()
   const router = useRouter()
   const { toast } = useToast()
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null)
+  const [gameTypeFilter, setGameTypeFilter] = useState<'all' | 'regular' | 'playoff' | 'championship'>('all')
   const { isAdmin, isLoading: adminLoading } = useAdmin()
 
   // Queries
@@ -101,7 +103,11 @@ export default function GamesPage() {
   }, [seasons, selectedSeason])
   
   const currentSeasonTeams = teams && selectedSeason ? teams.filter(team => team.season === selectedSeason) : []
-  const currentSeasonGames = games && selectedSeason ? games.filter(game => game.season === selectedSeason) : []
+  const currentSeasonGames = games && selectedSeason 
+    ? games
+        .filter(game => game.season === selectedSeason)
+        .filter(game => gameTypeFilter === 'all' || game.game_type === gameTypeFilter)
+    : []
 
   // Show loading state
   if (teamsLoading || gamesLoading || adminLoading || selectedSeason === null) {
@@ -116,24 +122,26 @@ export default function GamesPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="space-y-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
             {isAdmin ? 'Game Management' : 'Games'}
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             {isAdmin ? 'Manage your games for each season' : 'View games for each season'}
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Label htmlFor="season-select" className="text-sm font-medium text-gray-700 dark:text-gray-300">Season:</Label>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <Label htmlFor="season-select" className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:whitespace-nowrap">
+            Select Season:
+          </Label>
           <select
             id="season-select"
             value={selectedSeason}
             onChange={(e) => setSelectedSeason(Number(e.target.value))}
-            className="input-modern w-40"
+            className="input-modern w-full sm:w-40"
           >
             {seasons.map(season => (
               <option key={season} value={season}>Season {season}</option>
@@ -152,6 +160,42 @@ export default function GamesPage() {
         />
       )}
       
+      {/* Game Type Filter */}
+      <div className="card-modern p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:whitespace-nowrap">
+            Select Game:
+          </Label>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant={gameTypeFilter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setGameTypeFilter('all')}
+              className="flex-1 sm:flex-none"
+            >
+              All
+            </Button>
+            <Button
+              variant={gameTypeFilter === 'regular' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setGameTypeFilter('regular')}
+              className="flex-1 sm:flex-none"
+            >
+              Regular
+            </Button>
+            <Button
+              variant={gameTypeFilter === 'playoff' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setGameTypeFilter('playoff')}
+              className="flex-1 sm:flex-none gap-1"
+            >
+              <Trophy className="h-3 w-3" />
+              Playoffs
+            </Button>
+          </div>
+        </div>
+      </div>
+      
       {/* Games Grid */}
       {currentSeasonGames.length === 0 ? (
         <div className="card-modern p-12 text-center">
@@ -162,7 +206,7 @@ export default function GamesPage() {
           <p className="text-gray-600">Create your first game for Season {selectedSeason}</p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {currentSeasonGames.map((game) => (
             <GameCard
               key={game.id}
@@ -447,7 +491,7 @@ function GameCard({
           onClick()
         }
       }}
-      className="relative card-bubbly p-6 border-2 border-gray-200/50 dark:border-gray-600/50 hover:border-green-400/60 dark:hover:border-green-500/60 hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80 cursor-pointer"
+      className="relative card-bubbly p-4 sm:p-6 border-2 border-gray-200/50 dark:border-gray-600/50 hover:border-green-400/60 dark:hover:border-green-500/60 hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80 cursor-pointer"
     >
       <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-green-400/10 to-transparent rounded-bl-full"></div>
       
@@ -515,13 +559,16 @@ function GameCard({
               </div>
             ) : (
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  {game.team1_name} ({game.team1_score}) <span className="text-gray-400 dark:text-gray-500">vs</span> {game.team2_name} ({game.team2_score})
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white break-words">
+                  <span className="block sm:inline">{game.team1_name} ({game.team1_score})</span>{' '}
+                  <span className="text-gray-400 dark:text-gray-500">vs</span>{' '}
+                  <span className="block sm:inline">{game.team2_name} ({game.team2_score})</span>
                 </h3>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <span className="inline-block px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs font-bold">
                     Week {game.week}
                   </span>
+                  <GameTypeBadge gameType={game.game_type} size="sm" />
                   <span className="text-xs text-gray-500 dark:text-gray-400">Season {game.season}</span>
                 </div>
               </div>
