@@ -18,9 +18,11 @@
   - Applied to Overview, Game Log, and Records tabs
 - **Player Detail Modal**: Fixed missing stats for players with only targets (no receptions)
   - Modal now shows all receiving stats even if receptions are 0
-- **Player Detail Modal**: Fixed career totals showing only current season
+- **Player Detail Modal Career Stats**: Fixed career totals to show all-time stats instead of only current season
   - Modal now fetches all stats independently to show full career data
   - Career stats properly aggregate across all seasons using canonical_player_id
+- **Game Creation Season Bug**: Fixed games being created in wrong season when different season selected
+- **Team Selection**: Prevented selecting same team for both Team 1 and Team 2 in game creation
 
 #### ✨ Added
 - **Game Type Feature**: Games can now be marked as regular season, playoff, or championship
