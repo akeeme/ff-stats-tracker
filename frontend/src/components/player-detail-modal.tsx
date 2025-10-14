@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Player, PlayerStats, api } from '@/lib/api'
 import { Trophy, TrendingUp, Calendar, Target, BarChart3, Award } from 'lucide-react'
+import { GameTypeBadge } from '@/components/game-type-badge'
 
 interface PlayerDetailModalProps {
   player: Player | null
@@ -207,7 +208,14 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
 
   // Recent form (last 3 games)
   const recentGames = useMemo(() => {
-    return playerStats.slice(-3).reverse()
+    return playerStats
+      .slice()
+      .sort((a, b) => {
+        // Sort by season desc, then by week desc to get most recent games first
+        if (b.game_season !== a.game_season) return b.game_season - a.game_season
+        return b.game_week - a.game_week
+      })
+      .slice(0, 3) // Take the first 3 (most recent)
   }, [playerStats])
 
   if (!player) return null
@@ -346,29 +354,53 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {recentGames.map((game) => (
-                      <div key={game.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-semibold text-gray-500">Week {game.game_week}</span>
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {game.team1_name} vs {game.team2_name}
-                          </span>
-                        </div>
-                        <div className="flex gap-4 text-sm">
-                          {game.passing_tds > 0 && <span className="font-semibold">{game.passing_tds} Pass TD</span>}
-                          {game.passes_attempted > 0 && <span>{game.passes_completed}/{game.passes_attempted}</span>}
-                          {game.receptions > 0 && <span className="font-semibold">{game.receptions} Rec</span>}
-                          {game.targets > 0 && <span>{game.targets} Tgt</span>}
-                          {game.receiving_tds > 0 && <span className="font-semibold">{game.receiving_tds} TD</span>}
-                          {game.rush_attempts > 0 && <span>{game.rush_attempts} Rush</span>}
-                          {game.rushing_tds > 0 && <span className="font-semibold">{game.rushing_tds} Rush TD</span>}
-                          {game.flag_pulls > 0 && <span>{game.flag_pulls} Pulls</span>}
-                          {game.sacks > 0 && <span>{game.sacks} Sacks</span>}
-                          {game.interceptions > 0 && <span>{game.interceptions} INT</span>}
-                        </div>
-                      </div>
-                    ))}
+                  <div className="space-y-2">
+                    {recentGames.map((game) => {
+                      const gameInfo = allGames.find(g => g.id === game.game_id)
+                      const stats = []
+                      if (game.passing_tds > 0) stats.push({ label: 'Pass TD', value: game.passing_tds, color: 'text-green-600 dark:text-green-400' })
+                      if (game.passes_attempted > 0) stats.push({ label: 'C/A', value: `${game.passes_completed}/${game.passes_attempted}`, color: 'text-blue-600 dark:text-blue-400' })
+                      if (game.interceptions_thrown > 0) stats.push({ label: 'INTs Thrown', value: game.interceptions_thrown, color: 'text-red-600 dark:text-red-400' })
+                      if (game.receptions > 0) stats.push({ label: 'Rec', value: game.receptions, color: 'text-purple-600 dark:text-purple-400' })
+                      if (game.targets > 0) stats.push({ label: 'Tgt', value: game.targets, color: 'text-gray-600 dark:text-gray-400' })
+                      if (game.receiving_tds > 0) stats.push({ label: 'Rec TD', value: game.receiving_tds, color: 'text-green-600 dark:text-green-400' })
+                      if (game.drops > 0) stats.push({ label: 'Drops', value: game.drops, color: 'text-red-600 dark:text-red-400' })
+                      if (game.rush_attempts > 0) stats.push({ label: 'Rush', value: game.rush_attempts, color: 'text-orange-600 dark:text-orange-400' })
+                      if (game.rushing_tds > 0) stats.push({ label: 'Rush TD', value: game.rushing_tds, color: 'text-green-600 dark:text-green-400' })
+                      if (game.flag_pulls > 0) stats.push({ label: 'Pulls', value: game.flag_pulls, color: 'text-yellow-600 dark:text-yellow-400' })
+                      if (game.sacks > 0) stats.push({ label: 'Sacks', value: game.sacks, color: 'text-orange-600 dark:text-orange-400' })
+                      if (game.interceptions > 0) stats.push({ label: 'Def INTs', value: game.interceptions, color: 'text-purple-600 dark:text-purple-400' })
+                      if (game.pass_breakups > 0) stats.push({ label: 'PBU', value: game.pass_breakups, color: 'text-blue-600 dark:text-blue-400' })
+                      if (game.def_td > 0) stats.push({ label: 'Def TD', value: game.def_td, color: 'text-green-600 dark:text-green-400' })
+
+                      return (
+                        <Card key={game.id} className="p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4 min-w-0 flex-shrink-0">
+                              <div className="text-center flex-shrink-0">
+                                <div className="text-xs text-gray-500">Week</div>
+                                <div className="text-lg font-bold">{game.game_week}</div>
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-semibold truncate">{game.team1_name} vs {game.team2_name}</div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs text-gray-500">Season {game.game_season}</span>
+                                  {gameInfo?.game_type && <GameTypeBadge gameType={gameInfo.game_type} size="sm" />}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 justify-end items-center">
+                              {stats.map((stat, idx) => (
+                                <div key={idx} className="flex items-center gap-1 whitespace-nowrap">
+                                  <span className="text-xs text-gray-500">{stat.label}:</span>
+                                  <span className={`font-bold text-sm ${stat.color}`}>{stat.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </Card>
+                      )
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -437,6 +469,7 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
                 if (b.game_season !== a.game_season) return b.game_season - a.game_season
                 return b.game_week - a.game_week
               }).map((game) => {
+                const gameInfo = allGames.find(g => g.id === game.game_id)
                 // Collect all non-zero stats for this game
                 const stats = []
                 if (game.passing_tds > 0) stats.push({ label: 'Pass TD', value: game.passing_tds, color: 'text-green-600 dark:text-green-400' })
@@ -465,7 +498,10 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
                         </div>
                         <div className="min-w-0">
                           <div className="font-semibold truncate">{game.team1_name} vs {game.team2_name}</div>
-                          <div className="text-xs text-gray-500">Season {game.game_season}</div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-gray-500">Season {game.game_season}</span>
+                            {gameInfo?.game_type && <GameTypeBadge gameType={gameInfo.game_type} size="sm" />}
+                          </div>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 justify-end items-center">
