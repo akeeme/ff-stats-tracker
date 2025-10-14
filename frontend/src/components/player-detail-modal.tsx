@@ -1,22 +1,36 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { AlertDialog, AlertDialogContent } from '@/components/ui/alert-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Player, PlayerStats } from '@/lib/api'
+import { Player, PlayerStats, api } from '@/lib/api'
 import { Trophy, TrendingUp, Calendar, Target, BarChart3, Award } from 'lucide-react'
 
 interface PlayerDetailModalProps {
   player: Player | null
-  stats: PlayerStats[]
   allPlayers: Player[]
   isOpen: boolean
   onClose: () => void
 }
 
-export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }: PlayerDetailModalProps) {
+export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: PlayerDetailModalProps) {
   const [activeTab, setActiveTab] = useState('overview')
+
+  // Fetch ALL stats when modal is open (not filtered by season)
+  const { data: allStats = [] } = useQuery({
+    queryKey: ['all-stats-for-modal'],
+    queryFn: () => api.getPlayerStats(),
+    enabled: isOpen,
+  })
+
+  // Fetch games to determine playoff stats
+  const { data: allGames = [] } = useQuery({
+    queryKey: ['games'],
+    queryFn: api.getGames,
+    enabled: isOpen,
+  })
 
   // Filter stats for this player across all seasons using canonical_player_id
   const playerStats = useMemo(() => {
@@ -33,8 +47,8 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
     )
     
     // Return stats for all related player records
-    return stats.filter(s => relatedPlayerIds.has(s.player_id))
-  }, [player, stats, allPlayers])
+    return allStats.filter(s => relatedPlayerIds.has(s.player_id))
+  }, [player, allStats, allPlayers])
 
   // Calculate aggregated stats
   const careerStats = useMemo(() => {
@@ -71,6 +85,7 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
     return {
       passing_tds: Math.max(...playerStats.map(s => s.passing_tds)),
       passes_completed: Math.max(...playerStats.map(s => s.passes_completed)),
+      interceptions_thrown: Math.max(...playerStats.map(s => s.interceptions_thrown)),
       receptions: Math.max(...playerStats.map(s => s.receptions)),
       targets: Math.max(...playerStats.map(s => s.targets)),
       receiving_tds: Math.max(...playerStats.map(s => s.receiving_tds)),
@@ -120,6 +135,49 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
       })
     })).sort((a, b) => b.season - a.season)
   }, [playerStats])
+
+  // Separate playoff and regular season stats
+  const playoffStats = useMemo(() => {
+    const playoffGameIds = new Set(
+      allGames.filter(g => g.game_type === 'playoff' || g.game_type === 'championship').map(g => g.id)
+    )
+    return playerStats.filter(s => playoffGameIds.has(s.game_id))
+  }, [playerStats, allGames])
+
+  const regularSeasonStats = useMemo(() => {
+    const regularGameIds = new Set(
+      allGames.filter(g => g.game_type === 'regular').map(g => g.id)
+    )
+    return playerStats.filter(s => regularGameIds.has(s.game_id))
+  }, [playerStats, allGames])
+
+  // Calculate playoff totals
+  const playoffTotals = useMemo(() => {
+    return playoffStats.reduce((acc, stat) => ({
+      passing_tds: acc.passing_tds + stat.passing_tds,
+      passes_completed: acc.passes_completed + stat.passes_completed,
+      passes_attempted: acc.passes_attempted + stat.passes_attempted,
+      interceptions_thrown: acc.interceptions_thrown + stat.interceptions_thrown,
+      receptions: acc.receptions + stat.receptions,
+      targets: acc.targets + stat.targets,
+      receiving_tds: acc.receiving_tds + stat.receiving_tds,
+      drops: acc.drops + stat.drops,
+      first_downs: acc.first_downs + stat.first_downs,
+      rushing_tds: acc.rushing_tds + stat.rushing_tds,
+      rush_attempts: acc.rush_attempts + stat.rush_attempts,
+      flag_pulls: acc.flag_pulls + stat.flag_pulls,
+      sacks: acc.sacks + stat.sacks,
+      interceptions: acc.interceptions + stat.interceptions,
+      pass_breakups: acc.pass_breakups + stat.pass_breakups,
+      def_td: acc.def_td + stat.def_td,
+      games: acc.games + 1
+    }), {
+      passing_tds: 0, passes_completed: 0, passes_attempted: 0, interceptions_thrown: 0,
+      receptions: 0, targets: 0, receiving_tds: 0, drops: 0, first_downs: 0,
+      rushing_tds: 0, rush_attempts: 0, flag_pulls: 0, interceptions: 0,
+      pass_breakups: 0, def_td: 0, sacks: 0, games: 0
+    })
+  }, [playoffStats])
 
   // Calculate per game averages
   const perGameAvg = useMemo(() => {
@@ -176,10 +234,11 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="seasons">By Season</TabsTrigger>
             <TabsTrigger value="games">Game Log</TabsTrigger>
+            <TabsTrigger value="playoffs">Playoffs</TabsTrigger>
             <TabsTrigger value="records">Records</TabsTrigger>
           </TabsList>
 
@@ -373,12 +432,16 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
           {/* Game Log Tab */}
           <TabsContent value="games" className="space-y-2">
             <div className="space-y-2">
-              {playerStats.slice().reverse().map((game) => {
+              {playerStats.slice().sort((a, b) => {
+                // Sort by season desc, then by week desc
+                if (b.game_season !== a.game_season) return b.game_season - a.game_season
+                return b.game_week - a.game_week
+              }).map((game) => {
                 // Collect all non-zero stats for this game
                 const stats = []
                 if (game.passing_tds > 0) stats.push({ label: 'Pass TD', value: game.passing_tds, color: 'text-green-600 dark:text-green-400' })
                 if (game.passes_attempted > 0) stats.push({ label: 'C/A', value: `${game.passes_completed}/${game.passes_attempted}`, color: 'text-blue-600 dark:text-blue-400' })
-                if (game.interceptions_thrown > 0) stats.push({ label: 'INT', value: game.interceptions_thrown, color: 'text-red-600 dark:text-red-400' })
+                if (game.interceptions_thrown > 0) stats.push({ label: 'INTs Thrown', value: game.interceptions_thrown, color: 'text-red-600 dark:text-red-400' })
                 if (game.receptions > 0) stats.push({ label: 'Rec', value: game.receptions, color: 'text-purple-600 dark:text-purple-400' })
                 if (game.targets > 0) stats.push({ label: 'Tgt', value: game.targets, color: 'text-gray-600 dark:text-gray-400' })
                 if (game.receiving_tds > 0) stats.push({ label: 'Rec TD', value: game.receiving_tds, color: 'text-green-600 dark:text-green-400' })
@@ -387,7 +450,7 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
                 if (game.rushing_tds > 0) stats.push({ label: 'Rush TD', value: game.rushing_tds, color: 'text-green-600 dark:text-green-400' })
                 if (game.flag_pulls > 0) stats.push({ label: 'Pulls', value: game.flag_pulls, color: 'text-yellow-600 dark:text-yellow-400' })
                 if (game.sacks > 0) stats.push({ label: 'Sacks', value: game.sacks, color: 'text-orange-600 dark:text-orange-400' })
-                if (game.interceptions > 0) stats.push({ label: 'INT', value: game.interceptions, color: 'text-purple-600 dark:text-purple-400' })
+                if (game.interceptions > 0) stats.push({ label: 'Def INTs', value: game.interceptions, color: 'text-purple-600 dark:text-purple-400' })
                 if (game.pass_breakups > 0) stats.push({ label: 'PBU', value: game.pass_breakups, color: 'text-blue-600 dark:text-blue-400' })
                 if (game.def_td > 0) stats.push({ label: 'Def TD', value: game.def_td, color: 'text-green-600 dark:text-green-400' })
                 if (game.first_downs > 0) stats.push({ label: '1st', value: game.first_downs, color: 'text-blue-600 dark:text-blue-400' })
@@ -420,6 +483,131 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
             </div>
           </TabsContent>
 
+          {/* Playoffs Tab */}
+          <TabsContent value="playoffs" className="space-y-4">
+            {playoffStats.length > 0 ? (
+              <>
+                {/* Playoff Totals */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-blue-600" />
+                      Playoff Career Totals
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <StatBox label="Games" value={playoffTotals.games} />
+                      {(playoffTotals.passing_tds > 0 || playoffTotals.passes_attempted > 0) && (
+                        <>
+                          <StatBox label="Pass TDs" value={playoffTotals.passing_tds} />
+                          <StatBox label="Completions" value={`${playoffTotals.passes_completed}/${playoffTotals.passes_attempted}`} />
+                          <StatBox label="INTs Thrown" value={playoffTotals.interceptions_thrown} />
+                        </>
+                      )}
+                      {(playoffTotals.receptions > 0 || playoffTotals.targets > 0) && (
+                        <>
+                          {playoffTotals.receptions > 0 && <StatBox label="Receptions" value={playoffTotals.receptions} />}
+                          {playoffTotals.targets > 0 && <StatBox label="Targets" value={playoffTotals.targets} />}
+                          {playoffTotals.receiving_tds > 0 && <StatBox label="Rec TDs" value={playoffTotals.receiving_tds} />}
+                          {playoffTotals.drops > 0 && <StatBox label="Drops" value={playoffTotals.drops} />}
+                        </>
+                      )}
+                      {playoffTotals.rush_attempts > 0 && (
+                        <>
+                          <StatBox label="Rush Att" value={playoffTotals.rush_attempts} />
+                          {playoffTotals.rushing_tds > 0 && <StatBox label="Rush TDs" value={playoffTotals.rushing_tds} />}
+                        </>
+                      )}
+                      {(playoffTotals.flag_pulls > 0 || playoffTotals.sacks > 0 || playoffTotals.interceptions > 0) && (
+                        <>
+                          {playoffTotals.flag_pulls > 0 && <StatBox label="Flag Pulls" value={playoffTotals.flag_pulls} />}
+                          {playoffTotals.sacks > 0 && <StatBox label="Sacks" value={playoffTotals.sacks} />}
+                          {playoffTotals.interceptions > 0 && <StatBox label="Def INTs" value={playoffTotals.interceptions} />}
+                          {playoffTotals.pass_breakups > 0 && <StatBox label="PBUs" value={playoffTotals.pass_breakups} />}
+                          {playoffTotals.def_td > 0 && <StatBox label="Def TDs" value={playoffTotals.def_td} />}
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Playoff Game Log */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5" />
+                      Playoff Game Log
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {playoffStats.slice().sort((a, b) => {
+                        if (b.game_season !== a.game_season) return b.game_season - a.game_season
+                        return b.game_week - a.game_week
+                      }).map((game) => {
+                        const gameInfo = allGames.find(g => g.id === game.game_id)
+                        const stats = []
+                        if (game.passing_tds > 0) stats.push({ label: 'Pass TD', value: game.passing_tds, color: 'text-green-600 dark:text-green-400' })
+                        if (game.passes_attempted > 0) stats.push({ label: 'C/A', value: `${game.passes_completed}/${game.passes_attempted}`, color: 'text-blue-600 dark:text-blue-400' })
+                        if (game.interceptions_thrown > 0) stats.push({ label: 'INTs Thrown', value: game.interceptions_thrown, color: 'text-red-600 dark:text-red-400' })
+                        if (game.receptions > 0) stats.push({ label: 'Rec', value: game.receptions, color: 'text-purple-600 dark:text-purple-400' })
+                        if (game.targets > 0) stats.push({ label: 'Tgt', value: game.targets, color: 'text-gray-600 dark:text-gray-400' })
+                        if (game.receiving_tds > 0) stats.push({ label: 'Rec TD', value: game.receiving_tds, color: 'text-green-600 dark:text-green-400' })
+                        if (game.drops > 0) stats.push({ label: 'Drops', value: game.drops, color: 'text-red-600 dark:text-red-400' })
+                        if (game.rush_attempts > 0) stats.push({ label: 'Rush', value: game.rush_attempts, color: 'text-orange-600 dark:text-orange-400' })
+                        if (game.rushing_tds > 0) stats.push({ label: 'Rush TD', value: game.rushing_tds, color: 'text-green-600 dark:text-green-400' })
+                        if (game.flag_pulls > 0) stats.push({ label: 'Pulls', value: game.flag_pulls, color: 'text-yellow-600 dark:text-yellow-400' })
+                        if (game.sacks > 0) stats.push({ label: 'Sacks', value: game.sacks, color: 'text-orange-600 dark:text-orange-400' })
+                        if (game.interceptions > 0) stats.push({ label: 'Def INTs', value: game.interceptions, color: 'text-purple-600 dark:text-purple-400' })
+                        if (game.pass_breakups > 0) stats.push({ label: 'PBU', value: game.pass_breakups, color: 'text-blue-600 dark:text-blue-400' })
+                        if (game.def_td > 0) stats.push({ label: 'Def TD', value: game.def_td, color: 'text-green-600 dark:text-green-400' })
+
+                        return (
+                          <Card key={game.id} className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-4 min-w-0 flex-shrink-0">
+                                <div className="text-center flex-shrink-0">
+                                  <div className="text-xs text-gray-500">Week</div>
+                                  <div className="text-lg font-bold">{game.game_week}</div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs text-gray-500">Season {game.game_season}</span>
+                                    {gameInfo?.game_type === 'championship' && (
+                                      <span className="text-xs px-2 py-0.5 bg-yellow-500 text-white rounded-full font-bold">CHAMPIONSHIP</span>
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    {game.team1_name} vs {game.team2_name}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap gap-2 justify-end">
+                                {stats.map((stat, i) => (
+                                  <span key={i} className={`text-sm font-semibold ${stat.color}`}>
+                                    {stat.label}: {stat.value}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </Card>
+                        )
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Trophy className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-gray-400">No playoff games yet</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
           {/* Records Tab */}
           <TabsContent value="records" className="space-y-4">
             {careerHighs && (
@@ -434,6 +622,7 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {careerHighs.passing_tds > 0 && <StatBox label="Pass TDs" value={careerHighs.passing_tds} highlight />}
                     {careerHighs.passes_completed > 0 && <StatBox label="Completions" value={careerHighs.passes_completed} highlight />}
+                    {careerHighs.interceptions_thrown > 0 && <StatBox label="INTs Thrown" value={careerHighs.interceptions_thrown} highlight />}
                     {careerHighs.receptions > 0 && <StatBox label="Receptions" value={careerHighs.receptions} highlight />}
                     {careerHighs.targets > 0 && <StatBox label="Targets" value={careerHighs.targets} highlight />}
                     {careerHighs.receiving_tds > 0 && <StatBox label="Rec TDs" value={careerHighs.receiving_tds} highlight />}
@@ -441,7 +630,7 @@ export function PlayerDetailModal({ player, stats, allPlayers, isOpen, onClose }
                     {careerHighs.rushing_tds > 0 && <StatBox label="Rush TDs" value={careerHighs.rushing_tds} highlight />}
                     {careerHighs.flag_pulls > 0 && <StatBox label="Flag Pulls" value={careerHighs.flag_pulls} highlight />}
                     {careerHighs.sacks > 0 && <StatBox label="Sacks" value={careerHighs.sacks} highlight />}
-                    {careerHighs.interceptions > 0 && <StatBox label="INTs" value={careerHighs.interceptions} highlight />}
+                    {careerHighs.interceptions > 0 && <StatBox label="Def INTs" value={careerHighs.interceptions} highlight />}
                   </div>
                 </CardContent>
               </Card>

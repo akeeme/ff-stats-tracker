@@ -55,6 +55,7 @@ export interface Game {
   week: number;
   league: string;
   season: number;
+  game_type: 'regular' | 'playoff' | 'championship';
   team1_id: number;
   team1_name: string;
   team1_score: number;
@@ -247,8 +248,13 @@ export const api = {
   },
 
   // Player Stats
-  async getPlayerStats(): Promise<PlayerStats[]> {
-    const response = await fetch(`${API_BASE_URL}/stats`);
+  async getPlayerStats(params?: { season?: number; gameId?: number }): Promise<PlayerStats[]> {
+    const queryParams = new URLSearchParams();
+    if (params?.season) queryParams.append('season', params.season.toString());
+    if (params?.gameId) queryParams.append('game_id', params.gameId.toString());
+    
+    const url = `${API_BASE_URL}/stats${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to fetch player stats');
     return response.json();
   },

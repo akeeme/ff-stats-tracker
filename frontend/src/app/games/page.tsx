@@ -197,7 +197,7 @@ function CreateGameForm({
 }: { 
   teams: Team[]
   season: number
-  onSubmit: (game: { team1_name: string; team2_name: string; team1_score: number; team2_score: number; week: number; season: number; league: string; winning_team_name?: string }) => void
+  onSubmit: (game: { team1_name: string; team2_name: string; team1_score: number; team2_score: number; week: number; game_type: 'regular' | 'playoff' | 'championship'; season: number; league: string; winning_team_name?: string }) => void
   isLoading: boolean
 }) {
   const [formData, setFormData] = useState({
@@ -206,6 +206,7 @@ function CreateGameForm({
     team1_score: '' as any,
     team2_score: '' as any,
     week: 1,
+    game_type: 'regular' as 'regular' | 'playoff' | 'championship',
     winning_team_name: '',
     season: season,
   })
@@ -239,7 +240,8 @@ function CreateGameForm({
       team2_name: '', 
       team1_score: '' as any,
       team2_score: '' as any,
-      week: 1, 
+      week: 1,
+      game_type: 'regular',
       winning_team_name: '',
       season: season
     })
@@ -325,21 +327,37 @@ function CreateGameForm({
           </div>
         </div>
         
-        <div>
-          <Label htmlFor="week" className="text-sm font-semibold text-gray-700 mb-2 block">Week</Label>
-          <Input
-            id="week"
-            type="number"
-            min="1"
-            max="20"
-            value={formData.week}
-            onChange={(e) => setFormData({ ...formData, week: Number(e.target.value) })}
-            className="input-modern"
-            placeholder="Enter week number (1-20)"
-            required
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <Label htmlFor="week" className="text-sm font-semibold text-gray-700 mb-2 block">Week</Label>
+            <Input
+              id="week"
+              type="number"
+              min="1"
+              max="20"
+              value={formData.week}
+              onChange={(e) => setFormData({ ...formData, week: Number(e.target.value) })}
+              className="input-modern"
+              placeholder="Enter week number (1-20)"
+              required
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="game_type" className="text-sm font-semibold text-gray-700 mb-2 block">Game Type</Label>
+            <select
+              id="game_type"
+              value={formData.game_type}
+              onChange={(e) => setFormData({ ...formData, game_type: e.target.value as 'regular' | 'playoff' | 'championship' })}
+              className="input-modern"
+              required
+            >
+              <option value="regular">Regular Season</option>
+              <option value="playoff">Playoff</option>
+              <option value="championship">Championship</option>
+            </select>
+          </div>
         </div>
-        
         
         <Button type="submit" className="w-full btn-primary" disabled={isLoading}>
           {isLoading ? (

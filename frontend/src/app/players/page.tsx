@@ -30,10 +30,7 @@ export default function PlayersPage() {
     queryFn: api.getPlayers,
   })
 
-  const { data: stats = [], isLoading: statsLoading } = useQuery({
-    queryKey: ['stats'],
-    queryFn: api.getPlayerStats,
-  })
+  // Stats are now fetched directly by PlayerDetailModal when needed
 
   // Mutations
   const createPlayerMutation = useMutation({
@@ -167,7 +164,6 @@ export default function PlayersPage() {
       {/* Player Detail Modal */}
       <PlayerDetailModal
         player={selectedPlayer}
-        stats={stats}
         allPlayers={players}
         isOpen={selectedPlayer !== null}
         onClose={() => setSelectedPlayer(null)}
