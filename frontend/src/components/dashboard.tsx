@@ -7,6 +7,7 @@ import { Trophy, TrendingUp, Target, Zap, Shield, Calendar } from 'lucide-react'
 import { useGamesWithRealtime, usePlayerStatsWithRealtime, useTeamsWithRealtime } from '@/hooks'
 import { Game, PlayerStats, Team } from '@/lib/api'
 import { Label } from '@/components/ui/label'
+import { GameTypeBadge } from '@/components/game-type-badge'
 
 export function Dashboard() {
   const [selectedTab, setSelectedTab] = useState<'latest' | 'week' | 'season' | 'alltime'>('latest')
@@ -848,9 +849,12 @@ function RecentGames({ games }: { games: Game[] }) {
               <span className="text-xs font-bold tracking-wider uppercase text-gray-400">
                 Week {game.week} • {game.league}
               </span>
-              {rhinosWon && (
-                <Trophy className="h-4 w-4 text-yellow-400 animate-pulse" />
-              )}
+              <div className="flex items-center gap-2">
+                <GameTypeBadge gameType={game.game_type} size="sm" />
+                {rhinosWon && (
+                  <Trophy className="h-4 w-4 text-yellow-400 animate-pulse" />
+                )}
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex-1">
