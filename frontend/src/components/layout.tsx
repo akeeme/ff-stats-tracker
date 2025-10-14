@@ -31,7 +31,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <WhatsNewModal />
       
       {/* Modern Header */}
-      <div className="sticky top-0 z-50 relative bg-gradient-to-r from-slate-900 via-gray-900 to-slate-900 dark:from-black dark:via-gray-950 dark:to-black shadow-2xl border-b border-red-500/20">
+      <div className="relative bg-gradient-to-r from-slate-900 via-gray-900 to-slate-900 dark:from-black dark:via-gray-950 dark:to-black shadow-2xl border-b border-red-500/20">
         {/* Animated gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-purple-500/10 to-red-500/10 opacity-50"></div>
         
