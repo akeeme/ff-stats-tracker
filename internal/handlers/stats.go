@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"ff-stats-tracker/internal/models"
@@ -251,12 +252,37 @@ func (h *Handlers) CreatePlayerStats(c *fiber.Ctx) error {
 
 func (h *Handlers) GetPlayerStats(c *fiber.Ctx) error {
 	skip, _ := strconv.Atoi(c.Query("skip", "0"))
-	limit, _ := strconv.Atoi(c.Query("limit", "100"))
+	limit, _ := strconv.Atoi(c.Query("limit", "1000"))
 	includeDeleted := c.Query("include_deleted", "false") == "true"
+	season := c.Query("season", "")
+	gameID := c.Query("game_id", "")
 
-	whereClause := "WHERE ps.is_deleted = false"
-	if includeDeleted {
-		whereClause = ""
+	// Build WHERE conditions
+	conditions := []string{}
+	if !includeDeleted {
+		conditions = append(conditions, "ps.is_deleted = false")
+	}
+	
+	args := []interface{}{}
+	argCounter := 1
+	
+	if season != "" {
+		conditions = append(conditions, fmt.Sprintf("g.season = $%d", argCounter))
+		seasonInt, _ := strconv.Atoi(season)
+		args = append(args, seasonInt)
+		argCounter++
+	}
+	
+	if gameID != "" {
+		conditions = append(conditions, fmt.Sprintf("ps.game_id = $%d", argCounter))
+		gameIDInt, _ := strconv.Atoi(gameID)
+		args = append(args, gameIDInt)
+		argCounter++
+	}
+	
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = "WHERE " + strings.Join(conditions, " AND ")
 	}
 
 	query := fmt.Sprintf(`
@@ -265,17 +291,17 @@ func (h *Handlers) GetPlayerStats(c *fiber.Ctx) error {
 		       ps.flag_pulls, ps.sacks, ps.interceptions, ps.pass_breakups, ps.def_td, ps.version, ps.is_deleted, ps.created_at, ps.updated_at, ps.deleted_at,
 		       p.name as player_name, g.week as game_week, g.season as game_season, g.league,
 		       t1.name as team1_name, t2.name as team2_name
-		FROM player_stats ps
-		LEFT JOIN players p ON ps.player_id = p.id
-		LEFT JOIN games g ON ps.game_id = g.id
+		FROM statstracker.player_stats ps
+		LEFT JOIN statstracker.players p ON ps.player_id = p.id
+		LEFT JOIN statstracker.games g ON ps.game_id = g.id
 		LEFT JOIN statstracker.teams t1 ON g.team1_id = t1.id
 		LEFT JOIN statstracker.teams t2 ON g.team2_id = t2.id
 		%s
 		ORDER BY ps.id
-		LIMIT $1 OFFSET $2
-	`, whereClause)
+		LIMIT $%d OFFSET $%d
+	`, whereClause, argCounter, argCounter+1)
 
-	args := []interface{}{limit, skip}
+	args = append(args, limit, skip)
 
 	rows, err := h.db.Query(context.Background(), query, args...)
 	if err != nil {

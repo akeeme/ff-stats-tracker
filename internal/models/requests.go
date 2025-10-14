@@ -46,6 +46,7 @@ type GameCreateRequest struct {
 	Week            int     `json:"week" validate:"required"`
 	League          string  `json:"league" validate:"required"`
 	Season          int     `json:"season" validate:"required"`
+	GameType        string  `json:"game_type"` // regular, playoff, championship (defaults to regular)
 	Team1Name       string  `json:"team1_name" validate:"required"`
 	Team1Score      *int    `json:"team1_score,omitempty"`
 	Team2Name       string  `json:"team2_name" validate:"required"`
@@ -57,6 +58,7 @@ type GameUpdateRequest struct {
 	Week            *int    `json:"week,omitempty"`
 	League          *string `json:"league,omitempty"`
 	Season          *int    `json:"season,omitempty"`
+	GameType        *string `json:"game_type,omitempty"` // regular, playoff, championship
 	Team1Name       *string `json:"team1_name,omitempty"`
 	Team1ID         *int    `json:"team1_id,omitempty"`
 	Team1Score      *int    `json:"team1_score,omitempty"`

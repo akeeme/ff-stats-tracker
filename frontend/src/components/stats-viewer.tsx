@@ -8,16 +8,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Game, PlayerStats } from '@/lib/api'
 import { Trophy, Target, Zap, Shield, TrendingUp, Users } from 'lucide-react'
 import { useGamesWithRealtime, usePlayerStatsWithRealtime } from '@/hooks'
+import { GameTypeBadge } from '@/components/game-type-badge'
 
 export function StatsViewer() {
   const searchParams = useSearchParams()
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null)
   const [selectedGame, setSelectedGame] = useState<Game | null>(null)
   const [viewMode, setViewMode] = useState<'game' | 'season'>('game')
+  const [gameTypeFilter, setGameTypeFilter] = useState<'all' | 'regular' | 'playoff' | 'championship'>('all')
 
   // Queries with realtime updates
   const { data: games = [], isLoading: gamesLoading } = useGamesWithRealtime()
-  const { data: allStats = [], isLoading: statsLoading } = usePlayerStatsWithRealtime()
+  
+  // Fetch stats based on view mode and selection
+  const statsParams = selectedGame 
+    ? { gameId: selectedGame.id }
+    : selectedSeason && viewMode === 'season'
+    ? { season: selectedSeason }
+    : undefined
+  
+  const { data: allStats = [], isLoading: statsLoading } = usePlayerStatsWithRealtime(statsParams)
 
   // Get unique seasons
   const seasons = Array.from(new Set(games.map(g => g.season))).sort((a, b) => b - a)
@@ -34,21 +44,30 @@ export function StatsViewer() {
     }
   }, [searchParams, games, selectedGame])
 
-  // Filter games by selected season
+  // Filter games by selected season and game type
   const seasonGames = selectedSeason 
-    ? games.filter(g => g.season === selectedSeason).sort((a, b) => b.week - a.week)
+    ? games
+        .filter(g => g.season === selectedSeason)
+        .filter(g => gameTypeFilter === 'all' || g.game_type === gameTypeFilter)
+        .sort((a, b) => b.week - a.week)
     : []
 
-  // Get stats for selected game
-  const gameStats = selectedGame
-    ? allStats.filter(stat => stat.game_id === selectedGame.id)
-    : []
+  // Stats are already filtered by the backend based on statsParams
+  const gameStats = allStats
 
   // Group stats by category
-  const qbStats = gameStats.filter(s => s.passing_tds > 0 || s.passes_attempted > 0)
-  const receiverStats = gameStats.filter(s => s.receptions > 0 || s.targets > 0)
-  const rushingStats = gameStats.filter(s => s.rushing_tds > 0 || s.rush_attempts > 0)
-  const defenseStats = gameStats.filter(s => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0 || s.sacks > 0)
+  const qbStats = gameStats.filter(s => 
+    s.passing_tds > 0 || s.passes_attempted > 0 || s.passes_completed > 0 || s.interceptions_thrown > 0
+  )
+  const receiverStats = gameStats.filter(s => 
+    s.receptions > 0 || s.targets > 0 || s.receiving_tds > 0 || s.drops > 0
+  )
+  const rushingStats = gameStats.filter(s => 
+    s.rushing_tds > 0 || s.rush_attempts > 0
+  )
+  const defenseStats = gameStats.filter(s => 
+    s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0 || s.sacks > 0 || s.def_td > 0
+  )
 
   if (gamesLoading || statsLoading) {
     return (
@@ -71,13 +90,8 @@ export function StatsViewer() {
     )
   }
 
-  // Get season stats (aggregated)
-  const seasonStats = selectedSeason && viewMode === 'season'
-    ? allStats.filter(stat => {
-        const game = games.find(g => g.id === stat.game_id)
-        return game && game.season === selectedSeason
-      })
-    : []
+  // Season stats are already filtered by the backend when viewMode is 'season'
+  const seasonStats = viewMode === 'season' ? allStats : []
 
   return (
     <div className="space-y-8">
@@ -334,11 +348,40 @@ export function StatsViewer() {
       {selectedSeason && viewMode === 'game' && (
         <Card className="card-modern">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-red-600" />
-              Select Game
-            </CardTitle>
-            <CardDescription>Season {selectedSeason} Games</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-red-600" />
+                  Select Game
+                </CardTitle>
+                <CardDescription>Season {selectedSeason} Games</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant={gameTypeFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setGameTypeFilter('all')}
+                >
+                  All
+                </Button>
+                <Button
+                  variant={gameTypeFilter === 'regular' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setGameTypeFilter('regular')}
+                >
+                  Regular
+                </Button>
+                <Button
+                  variant={gameTypeFilter === 'playoff' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setGameTypeFilter('playoff')}
+                  className="gap-1"
+                >
+                  <Trophy className="h-3 w-3" />
+                  Playoffs
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -359,6 +402,7 @@ export function StatsViewer() {
                         <span className="inline-block px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-xs font-bold">
                           Week {game.week}
                         </span>
+                        <GameTypeBadge gameType={game.game_type} size="sm" />
                         <span className="text-sm text-gray-600 dark:text-gray-400">{game.league}</span>
                       </div>
                       <div className="font-bold text-gray-900 dark:text-white">

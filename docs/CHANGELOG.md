@@ -1,5 +1,74 @@
 # Changelog
 
+## 2025-10-14
+
+### Performance Optimization, Bug Fixes & Game Type Feature
+
+#### 🐛 Fixed
+- **Stats Display Issue**: Fixed missing player stats on Stats page caused by 100-record API limit
+  - Some players weren't showing because their records exceeded the pagination limit
+  - Stats are now properly filtered on the backend for better performance
+- **Stats Filtering**: Updated all stat category filters to include all relevant stats
+  - QB stats now include completions and INTs thrown (not just TDs/attempts)
+  - Receiver stats now include receiving TDs and drops (not just receptions/targets)
+  - Defense stats now include defensive TDs (not just flag pulls/INTs/PBUs/sacks)
+- **Player Detail Modal**: Fixed "INTs" label ambiguity throughout all tabs
+  - Passing interceptions now labeled "INTs Thrown"
+  - Defensive interceptions now labeled "Def INTs"
+  - Applied to Overview, Game Log, and Records tabs
+- **Player Detail Modal**: Fixed missing stats for players with only targets (no receptions)
+  - Modal now shows all receiving stats even if receptions are 0
+- **Player Detail Modal**: Fixed career totals showing only current season
+  - Modal now fetches all stats independently to show full career data
+  - Career stats properly aggregate across all seasons using canonical_player_id
+
+#### ✨ Added
+- **Game Type Feature**: Games can now be marked as regular season, playoff, or championship
+  - Added `game_type` column to games table with check constraint
+  - Backend accepts and returns game_type in all game endpoints
+  - Frontend shows "Game Type" dropdown in create game form
+  - Defaults to "Regular Season" if not specified
+  - See `GAME_TYPE_MIGRATION.md` for migration instructions
+- **Playoff/Championship Badges**: Visual indicators for playoff and championship games
+  - Blue "Playoff" badge with trophy icon for playoff games
+  - Gold "Championship" badge with crown icon for championship games
+  - Badges appear on game cards in Stats Viewer
+- **Game Type Filter**: Filter games by type in Stats Viewer
+  - "All", "Regular", and "Playoffs" filter buttons
+  - Quickly view only regular season or playoff games
+- **Playoff Stats Tab**: New tab in Player Detail Modal showing playoff performance
+  - Playoff career totals (games, passing, receiving, rushing, defense)
+  - Playoff game log with special blue/indigo styling
+  - Championship games highlighted with gold badge
+  - Shows "No playoff games yet" message if player hasn't played in playoffs
+
+#### ⚡ Improved
+- **API Performance**: Implemented backend filtering for player stats
+  - Added `season` and `game_id` query parameters to `/api/stats` endpoint
+  - Stats Viewer now fetches only stats for selected game/season
+  - Dashboard fetches only current season stats (or all for "All Time" tab)
+  - Players page no longer fetches stats (modal handles it independently)
+  - Significantly reduced network traffic and improved page load times
+- **Scalability**: Stats fetching now scales efficiently as data grows
+  - No longer fetching all stats and filtering client-side
+  - Backend handles filtering with optimized SQL queries
+- **Player Detail Modal**: Game Log now sorted by most recent game first
+  - Sorts by season descending, then week descending
+  - Latest games always appear at the top
+
+#### 🔧 Technical
+- Updated `GetPlayerStats` handler with dynamic WHERE clause building
+- Added `strings` import for SQL condition joining
+- Updated `api.getPlayerStats()` to accept optional `{ season, gameId }` parameters
+- Updated `usePlayerStatsWithRealtime()` hook to support filtering parameters
+- Modified Stats Viewer and Dashboard to use backend filtering
+- Player Detail Modal now uses `useQuery` to fetch all stats independently
+- Added `game_type` to Game model (backend) and Game interface (frontend)
+- Updated CreateGame and UpdateGame handlers to support game_type
+- Added `interceptions_thrown` to career highs calculation in Player Detail Modal
+
+---
+
 ## 2025-10-13 (Part 2)
 
 ### Player Stats & Manual Entry Enhancements

@@ -45,6 +45,7 @@ type Game struct {
 	Week          int    `json:"week" db:"week"`
 	League        string `json:"league" db:"league"`
 	Season        int    `json:"season" db:"season"`
+	GameType      string `json:"game_type" db:"game_type"` // regular, playoff, championship
 	Team1ID       *int   `json:"team1_id" db:"team1_id"`
 	Team1Score    int    `json:"team1_score" db:"team1_score"`
 	Team2ID       *int   `json:"team2_id" db:"team2_id"`

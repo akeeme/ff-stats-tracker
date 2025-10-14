@@ -6,26 +6,36 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
 // Update this version string whenever you want to show the modal again
-const CURRENT_VERSION = '2025-10-13-v2'
+const CURRENT_VERSION = '2025-10-14'
 
 const WHATS_NEW_CONTENT = {
-  version: 'October 13, 2025',
+  version: 'October 14, 2025',
   title: "What's New",
   features: [
     {
-      emoji: '📊',
-      title: 'Player Detail Modal',
-      description: 'Click any player to see career stats, game logs, records, and milestones'
+      emoji: '🏆',
+      title: 'Playoff & Championship Games',
+      description: 'Games can now be marked as Regular Season, Playoff, or Championship with special badges'
     },
     {
-      emoji: '🔗',
-      title: 'Cross-Season Player Tracking',
-      description: 'Players are now linked across seasons - see full career stats regardless of team'
+      emoji: '🔍',
+      title: 'Game Type Filters',
+      description: 'Filter games by type in Stats Viewer - quickly view only regular season or playoff games'
     },
     {
-      emoji: '🎨',
-      title: 'Improved Game Log',
-      description: 'Color-coded stats with better inline layout for easier reading'
+      emoji: '📈',
+      title: 'Playoff Stats Tab',
+      description: 'New Playoffs tab in Player Detail Modal shows career playoff totals and game-by-game playoff performance'
+    },
+    {
+      emoji: '⚡',
+      title: 'Performance Improvements',
+      description: 'Faster page loads with optimized backend filtering - stats are now fetched only when needed'
+    },
+    {
+      emoji: '🐛',
+      title: 'Bug Fixes',
+      description: 'Fixed career totals, stat filtering, and label clarity (INTs Thrown vs Def INTs)'
     }
   ]
 }
