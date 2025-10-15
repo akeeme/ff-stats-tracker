@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
 // Update this version string whenever you want to show the modal again
-const CURRENT_VERSION = '2025-10-14'
+const CURRENT_VERSION = '2025-10-14 v2'
 
 const WHATS_NEW_CONTENT = {
-  version: 'October 14, 2025',
+  version: 'October 14, 2025 v2',
   title: "What's New",
   features: [
     {
