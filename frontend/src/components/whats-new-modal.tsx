@@ -15,27 +15,27 @@ const WHATS_NEW_CONTENT = {
     {
       emoji: '🏆',
       title: 'Playoff & Championship Games',
-      description: 'Games can now be marked as Regular Season, Playoff, or Championship with special badges'
+      description: 'Games can now be marked as Regular Season, Playoff, or Championship. Look for blue playoff badges and gold championship badges throughout the app!'
     },
     {
       emoji: '🔍',
       title: 'Game Type Filters',
-      description: 'Filter games by type in Stats Viewer - quickly view only regular season or playoff games'
+      description: 'Filter games by type on both the Games page and Stats Viewer. Quickly view only regular season or playoff games with one click.'
     },
     {
-      emoji: '📈',
+      emoji: '📊',
       title: 'Playoff Stats Tab',
-      description: 'New Playoffs tab in Player Detail Modal shows career playoff totals and game-by-game playoff performance'
+      description: 'Click on any player to see their new Playoffs tab! View career playoff totals and game-by-game playoff performance with championship games highlighted.'
+    },
+    {
+      emoji: '📱',
+      title: 'Mobile Improvements',
+      description: 'Better mobile experience across all pages with improved spacing, responsive layouts, and touch-friendly buttons.'
     },
     {
       emoji: '⚡',
-      title: 'Performance Improvements',
-      description: 'Faster page loads with optimized backend filtering - stats are now fetched only when needed'
-    },
-    {
-      emoji: '🐛',
-      title: 'Bug Fixes',
-      description: 'Fixed career totals, stat filtering, and label clarity (INTs Thrown vs Def INTs)'
+      title: 'Performance & Bug Fixes',
+      description: 'Faster page loads, fixed season switching in Stats Viewer, improved Recent Form sorting, and better handling of games without stats.'
     }
   ]
 }

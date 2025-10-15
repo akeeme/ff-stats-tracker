@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -12,10 +12,12 @@ import { GameTypeBadge } from '@/components/game-type-badge'
 
 export function StatsViewer() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null)
   const [selectedGame, setSelectedGame] = useState<Game | null>(null)
   const [viewMode, setViewMode] = useState<'game' | 'season'>('game')
   const [gameTypeFilter, setGameTypeFilter] = useState<'all' | 'regular' | 'playoff' | 'championship'>('all')
+  const ignoreUrlParam = useRef(false)
 
   // Queries with realtime updates
   const { data: games = [], isLoading: gamesLoading } = useGamesWithRealtime()
@@ -35,7 +37,7 @@ export function StatsViewer() {
   // Auto-select game from URL parameter
   useEffect(() => {
     const gameId = searchParams.get('gameId')
-    if (gameId && games.length > 0 && !selectedGame) {
+    if (gameId && games.length > 0 && !selectedGame && !ignoreUrlParam.current) {
       const game = games.find(g => g.id === parseInt(gameId))
       if (game) {
         setSelectedSeason(game.season)
@@ -323,6 +325,12 @@ export function StatsViewer() {
               <Button
                 key={season}
                 onClick={() => {
+                  // Set flag to ignore URL parameter
+                  ignoreUrlParam.current = true
+                  // Clear URL parameter to prevent auto-reselection
+                  if (searchParams.get('gameId')) {
+                    router.replace('/stats')
+                  }
                   setSelectedSeason(season)
                   setSelectedGame(null)
                 }}
@@ -388,7 +396,10 @@ export function StatsViewer() {
               {seasonGames.map(game => (
                 <button
                   key={game.id}
-                  onClick={() => setSelectedGame(game)}
+                  onClick={() => {
+                    setSelectedGame(game)
+                    setSelectedSeason(game.season)
+                  }}
                   className={`relative w-full text-left p-5 rounded-xl border-2 transition-all duration-300 ${
                     selectedGame?.id === game.id
                       ? 'border-red-500 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 shadow-lg shadow-red-500/20'
