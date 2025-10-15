@@ -5,6 +5,14 @@
 ### Performance Optimization, Bug Fixes & Game Type Feature
 
 #### 🐛 Fixed
+- **Stats Viewer Season Selection**: Fixed bug where clicking a different season wouldn't work after viewing a game
+  - Issue occurred when navigating from Games page with gameId URL parameter
+  - Season buttons now properly clear URL parameter and ignore auto-selection
+  - Season switching now works with single click instead of requiring double-click
+- **Stats Viewer Null Safety**: Fixed crash when viewing games with no stats entered yet
+  - Added null checks for `allStats`, `seasonStats`, and `gameStats`
+  - Empty games now show "No stats recorded" message instead of crashing
+  - All filter operations now safely handle null/undefined data
 - **Stats Display Issue**: Fixed missing player stats on Stats page caused by 100-record API limit
   - Some players weren't showing because their records exceeded the pagination limit
   - Stats are now properly filtered on the backend for better performance
@@ -43,6 +51,12 @@
   - Playoff game log with special blue/indigo styling
   - Championship games highlighted with gold badge
   - Shows "No playoff games yet" message if player hasn't played in playoffs
+- **Game Type Filter on Games Page**: Filter games by type on the Games management page
+  - "All", "Regular", and "Playoffs" filter buttons
+  - Quickly view only regular season or playoff games for selected season
+- **Playoff/Championship Badges on Dashboard**: Recent games now show game type badges
+  - Badges appear on the right side next to trophy icon (if Rhinos won)
+  - Consistent badge styling across all pages
 
 #### ⚡ Improved
 - **API Performance**: Implemented backend filtering for player stats
@@ -57,6 +71,18 @@
 - **Player Detail Modal**: Game Log now sorted by most recent game first
   - Sorts by season descending, then week descending
   - Latest games always appear at the top
+- **Player Detail Modal Recent Form**: Fixed to show actual most recent 3 games
+  - Now properly sorts by season and week before taking last 3 games
+  - Previously showed last 3 from unsorted array
+- **Player Detail Modal Game Type Badges**: Playoff/championship badges now show in all tabs
+  - Recent Form section shows badges next to season number
+  - Game Log tab shows badges next to season number
+  - Consistent badge placement across modal
+- **Mobile Responsiveness**: Improved mobile layouts across the app
+  - Games page: Better spacing, responsive headers, mobile-friendly filters
+  - Game cards: Reduced padding on mobile, team names wrap properly
+  - Player modal: Recent Form cards match Game Log style for consistency
+  - Dashboard: Recent games layout optimized for small screens
 
 #### 🔧 Technical
 - Updated `GetPlayerStats` handler with dynamic WHERE clause building
@@ -68,6 +94,11 @@
 - Added `game_type` to Game model (backend) and Game interface (frontend)
 - Updated CreateGame and UpdateGame handlers to support game_type
 - Added `interceptions_thrown` to career highs calculation in Player Detail Modal
+- Created `GameTypeBadge` component for consistent badge rendering
+- Added `useRef` flag in Stats Viewer to prevent URL parameter auto-selection after manual interaction
+- Implemented `router.replace()` to clear URL parameters when changing seasons
+- Added null safety checks throughout stats-viewer.tsx and player-detail-modal.tsx
+- Created `TESTING_CHECKLIST.md` for future development quality assurance
 
 ---
 
