@@ -68,7 +68,7 @@ export function StatsViewer() {
     s.rushing_tds > 0 || s.rush_attempts > 0
   )
   const defenseStats = gameStats.filter(s => 
-    s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0 || s.sacks > 0 || s.def_td > 0
+    s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0 || s.sacks > 0 || s.def_td > 0 || s.safeties > 0
   )
 
   if (gamesLoading || statsLoading) {
@@ -288,6 +288,7 @@ export function StatsViewer() {
                           <StatBox label="INTs" value={stat.interceptions} color={getColorByValue(stat.interceptions)} />
                           <StatBox label="Pass Breakups" value={stat.pass_breakups} color={getColorByValue(stat.pass_breakups)} />
                           <StatBox label="Def TDs" value={stat.def_td} color={getColorByValue(stat.def_td)} />
+                          <StatBox label="Safeties" value={stat.safeties} color={getColorByValue(stat.safeties)} />
                         </div>
 
                         {/* Mobile: Table */}
@@ -298,6 +299,7 @@ export function StatsViewer() {
                             { label: 'Interceptions', value: stat.interceptions, color: getColorByValue(stat.interceptions) },
                             { label: 'Pass Breakups', value: stat.pass_breakups, color: getColorByValue(stat.pass_breakups) },
                             { label: 'Defensive TDs', value: stat.def_td, color: getColorByValue(stat.def_td) },
+                            { label: 'Safeties', value: stat.safeties, color: getColorByValue(stat.safeties) },
                           ]} />
                         </div>
                       </div>
@@ -531,6 +533,7 @@ function SeasonLeaderboard({ stats, season }: { stats: PlayerStats[]; season: nu
       current.interceptions_thrown += stat.interceptions_thrown
       current.def_td += stat.def_td
       current.sacks += stat.sacks
+      current.safeties += stat.safeties
     }
   })
 

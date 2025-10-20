@@ -30,6 +30,7 @@ type StatSubmission = {
   pass_breakups?: number
   def_td?: number
   sacks?: number
+  safeties?: number
 }
 
 type PlayerStats = {
@@ -50,6 +51,7 @@ type PlayerStats = {
     interceptions: number
     pass_breakups: number
     def_td: number
+    safeties: number
   }
 }
 
@@ -143,6 +145,7 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
         interceptions: 0,
         pass_breakups: 0,
         def_td: 0,
+        safeties: 0,
       }
 
       const oldValue = current[statType]
@@ -167,6 +170,7 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
           interceptions: 'INT',
           pass_breakups: 'PBU',
           def_td: 'Def TD',
+          safeties: 'Safety',
         }
         
         const label = statLabels[statType] || statType
@@ -207,6 +211,7 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
         interceptions: 0,
         pass_breakups: 0,
         def_td: 0,
+        safeties: 0,
       }
 
       const updated = {
@@ -1545,6 +1550,13 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                           </Button>
                           <Button
                             size="sm"
+                            onClick={() => incrementStat(player.name, 'safeties', 'Safety')}
+                            className="gap-1 relative overflow-hidden bg-gradient-to-br from-red-100 via-red-50 to-red-100 hover:from-red-200 hover:via-red-100 hover:to-red-200 dark:from-red-900/60 dark:via-red-800/40 dark:to-red-900/60 dark:hover:from-red-800/70 dark:hover:via-red-700/50 dark:hover:to-red-800/70 text-red-700 dark:text-red-300 border-2 border-red-200/50 dark:border-red-700/50 rounded-full shadow-md hover:shadow-lg transition-all font-semibold px-4 before:absolute before:inset-0 before:rounded-full before:p-[1px] before:bg-gradient-to-br before:from-white/15 before:to-transparent before:pointer-events-none"
+                          >
+                            <Plus className="h-3 w-3 relative z-10" /> <span className="relative z-10">Safety</span>
+                          </Button>
+                          <Button
+                            size="sm"
                             variant={showManualEntry[player.name] ? "default" : "outline"}
                             onClick={() => setShowManualEntry(prev => ({ ...prev, [player.name]: !prev[player.name] }))}
                             className="gap-1"
@@ -1619,9 +1631,20 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                                 placeholder="0"
                               />
                             </div>
+                            <div>
+                              <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Safeties</label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={stats?.safeties || ''}
+                                onChange={(e) => setStatManually(player.name, 'safeties', Number(e.target.value) || 0)}
+                                className="h-8 text-sm"
+                                placeholder="0"
+                              />
+                            </div>
                           </div>
                         )}
-                        {stats && (stats.flag_pulls > 0 || stats.sacks > 0 || stats.interceptions > 0 || stats.pass_breakups > 0 || stats.def_td > 0) && (
+                        {stats && (stats.flag_pulls > 0 || stats.sacks > 0 || stats.interceptions > 0 || stats.pass_breakups > 0 || stats.def_td > 0 || stats.safeties > 0) && (
                           <div className="flex items-center gap-4 ml-auto">
                             {stats.flag_pulls > 0 && (
                               <div className="flex items-baseline gap-2">
@@ -1661,6 +1684,14 @@ export function QuickStatEntry({ game, players, onSubmit }: QuickStatEntryProps)
                                   {stats.def_td}
                                 </span>
                                 <span className="text-base font-bold text-green-600 dark:text-green-400 uppercase tracking-wide">DEF TD</span>
+                              </div>
+                            )}
+                            {stats.safeties > 0 && (
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-red-600 to-red-400 dark:from-red-400 dark:to-red-300 leading-none">
+                                  {stats.safeties}
+                                </span>
+                                <span className="text-base font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">SAFETY</span>
                               </div>
                             )}
                           </div>

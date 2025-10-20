@@ -270,7 +270,7 @@ function LatestGameStats({ game, stats }: { game: Game | null; stats: PlayerStat
   const qbStats = gameStats.filter(s => s.passes_attempted > 0)
   const receiverStats = gameStats.filter(s => s.targets > 0)
   const rushingStats = gameStats.filter(s => s.rush_attempts > 0)
-  const defenseStats = gameStats.filter(s => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0 || s.def_td > 0)
+  const defenseStats = gameStats.filter(s => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0 || s.def_td > 0 || s.safeties > 0)
 
   // Calculate team totals for passing
   const teamPassingTotals = qbStats.reduce((acc, s) => ({
@@ -567,6 +567,7 @@ function LatestGameStats({ game, stats }: { game: Game | null; stats: PlayerStat
                   <th className="text-center py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">INT</th>
                   <th className="text-center py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">PBU</th>
                   <th className="text-center py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">TD</th>
+                  <th className="text-center py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">SAF</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -577,6 +578,7 @@ function LatestGameStats({ game, stats }: { game: Game | null; stats: PlayerStat
                     <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.interceptions}</td>
                     <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.pass_breakups}</td>
                     <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.def_td}</td>
+                    <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.safeties}</td>
                   </tr>
                 ))}
               </tbody>

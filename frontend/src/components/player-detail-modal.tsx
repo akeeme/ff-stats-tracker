@@ -70,12 +70,13 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
       pass_breakups: acc.pass_breakups + stat.pass_breakups,
       def_td: acc.def_td + stat.def_td,
       sacks: acc.sacks + stat.sacks,
+      safeties: acc.safeties + stat.safeties,
       games: acc.games + 1,
     }), {
       passing_tds: 0, passes_completed: 0, passes_attempted: 0, interceptions_thrown: 0,
       receptions: 0, targets: 0, receiving_tds: 0, drops: 0, first_downs: 0,
       rushing_tds: 0, rush_attempts: 0, flag_pulls: 0, interceptions: 0,
-      pass_breakups: 0, def_td: 0, sacks: 0, games: 0
+      pass_breakups: 0, def_td: 0, sacks: 0, safeties: 0, games: 0
     })
   }, [playerStats])
 
@@ -95,6 +96,7 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
       flag_pulls: Math.max(...playerStats.map(s => s.flag_pulls)),
       sacks: Math.max(...playerStats.map(s => s.sacks)),
       interceptions: Math.max(...playerStats.map(s => s.interceptions)),
+      safeties: Math.max(...playerStats.map(s => s.safeties)),
     }
   }, [playerStats])
 
@@ -127,12 +129,13 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
         pass_breakups: acc.pass_breakups + stat.pass_breakups,
         def_td: acc.def_td + stat.def_td,
         sacks: acc.sacks + stat.sacks,
+        safeties: acc.safeties + stat.safeties,
         games: acc.games + 1,
       }), {
         passing_tds: 0, passes_completed: 0, passes_attempted: 0, interceptions_thrown: 0,
         receptions: 0, targets: 0, receiving_tds: 0, drops: 0, first_downs: 0,
         rushing_tds: 0, rush_attempts: 0, flag_pulls: 0, interceptions: 0,
-        pass_breakups: 0, def_td: 0, sacks: 0, games: 0
+        pass_breakups: 0, def_td: 0, sacks: 0, safeties: 0, games: 0
       })
     })).sort((a, b) => b.season - a.season)
   }, [playerStats])
@@ -171,12 +174,13 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
       interceptions: acc.interceptions + stat.interceptions,
       pass_breakups: acc.pass_breakups + stat.pass_breakups,
       def_td: acc.def_td + stat.def_td,
+      safeties: acc.safeties + stat.safeties,
       games: acc.games + 1
     }), {
       passing_tds: 0, passes_completed: 0, passes_attempted: 0, interceptions_thrown: 0,
       receptions: 0, targets: 0, receiving_tds: 0, drops: 0, first_downs: 0,
       rushing_tds: 0, rush_attempts: 0, flag_pulls: 0, interceptions: 0,
-      pass_breakups: 0, def_td: 0, sacks: 0, games: 0
+      pass_breakups: 0, def_td: 0, sacks: 0, safeties: 0, games: 0
     })
   }, [playoffStats])
 
@@ -293,6 +297,7 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
                       <StatBox label="Def INTs" value={careerStats.interceptions} />
                       <StatBox label="PBUs" value={careerStats.pass_breakups} />
                       <StatBox label="Def TDs" value={careerStats.def_td} />
+                      <StatBox label="Safeties" value={careerStats.safeties} />
                     </>
                   )}
                   {careerStats.first_downs > 0 && (
@@ -372,6 +377,7 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
                       if (game.interceptions > 0) stats.push({ label: 'Def INTs', value: game.interceptions, color: 'text-purple-600 dark:text-purple-400' })
                       if (game.pass_breakups > 0) stats.push({ label: 'PBU', value: game.pass_breakups, color: 'text-blue-600 dark:text-blue-400' })
                       if (game.def_td > 0) stats.push({ label: 'Def TD', value: game.def_td, color: 'text-green-600 dark:text-green-400' })
+                      if (game.safeties > 0) stats.push({ label: 'Safety', value: game.safeties, color: 'text-red-600 dark:text-red-400' })
 
                       return (
                         <Card key={game.id} className="p-4">
@@ -450,6 +456,7 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
                         <StatBox label="Def INTs" value={stats.interceptions} />
                         <StatBox label="PBUs" value={stats.pass_breakups} />
                         <StatBox label="Def TDs" value={stats.def_td} />
+                        <StatBox label="Safeties" value={stats.safeties} />
                       </>
                     )}
                     {stats.first_downs > 0 && (
@@ -486,6 +493,7 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
                 if (game.interceptions > 0) stats.push({ label: 'Def INTs', value: game.interceptions, color: 'text-purple-600 dark:text-purple-400' })
                 if (game.pass_breakups > 0) stats.push({ label: 'PBU', value: game.pass_breakups, color: 'text-blue-600 dark:text-blue-400' })
                 if (game.def_td > 0) stats.push({ label: 'Def TD', value: game.def_td, color: 'text-green-600 dark:text-green-400' })
+                if (game.safeties > 0) stats.push({ label: 'Safety', value: game.safeties, color: 'text-red-600 dark:text-red-400' })
                 if (game.first_downs > 0) stats.push({ label: '1st', value: game.first_downs, color: 'text-blue-600 dark:text-blue-400' })
 
                 return (
@@ -562,6 +570,7 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
                           {playoffTotals.interceptions > 0 && <StatBox label="Def INTs" value={playoffTotals.interceptions} />}
                           {playoffTotals.pass_breakups > 0 && <StatBox label="PBUs" value={playoffTotals.pass_breakups} />}
                           {playoffTotals.def_td > 0 && <StatBox label="Def TDs" value={playoffTotals.def_td} />}
+                          {playoffTotals.safeties > 0 && <StatBox label="Safeties" value={playoffTotals.safeties} />}
                         </>
                       )}
                     </div>
@@ -598,6 +607,7 @@ export function PlayerDetailModal({ player, allPlayers, isOpen, onClose }: Playe
                         if (game.interceptions > 0) stats.push({ label: 'Def INTs', value: game.interceptions, color: 'text-purple-600 dark:text-purple-400' })
                         if (game.pass_breakups > 0) stats.push({ label: 'PBU', value: game.pass_breakups, color: 'text-blue-600 dark:text-blue-400' })
                         if (game.def_td > 0) stats.push({ label: 'Def TD', value: game.def_td, color: 'text-green-600 dark:text-green-400' })
+                        if (game.safeties > 0) stats.push({ label: 'Safety', value: game.safeties, color: 'text-red-600 dark:text-red-400' })
 
                         return (
                           <Card key={game.id} className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">

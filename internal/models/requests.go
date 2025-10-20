@@ -101,6 +101,7 @@ type PlayerStatsCreateRequest struct {
 	Interceptions *int `json:"interceptions,omitempty"`
 	PassBreakups  *int `json:"pass_breakups,omitempty"`
 	DefTD         *int `json:"def_td,omitempty"`
+	Safeties      *int `json:"safeties,omitempty"`
 }
 
 type PlayerStatsUpdateRequest struct {
@@ -127,6 +128,7 @@ type PlayerStatsUpdateRequest struct {
 	Interceptions *int `json:"interceptions,omitempty"`
 	PassBreakups  *int `json:"pass_breakups,omitempty"`
 	DefTD         *int `json:"def_td,omitempty"`
+	Safeties      *int `json:"safeties,omitempty"`
 }
 
 // Special requests

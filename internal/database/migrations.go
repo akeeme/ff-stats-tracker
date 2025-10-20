@@ -158,6 +158,7 @@ CREATE TABLE IF NOT EXISTS statstracker.player_stats (
     interceptions INTEGER DEFAULT 0,
     pass_breakups INTEGER DEFAULT 0,
     def_td INTEGER DEFAULT 0,
+    safeties INTEGER DEFAULT 0,
     
     version INTEGER DEFAULT 1 NOT NULL,
     is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
