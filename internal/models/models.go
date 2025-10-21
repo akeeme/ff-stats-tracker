@@ -85,6 +85,7 @@ type PlayerStats struct {
 	Interceptions int `json:"interceptions" db:"interceptions"`
 	PassBreakups  int `json:"pass_breakups" db:"pass_breakups"`
 	DefTD         int `json:"def_td" db:"def_td"`
+	Safeties      int `json:"safeties" db:"safeties"`
 
 	BaseModel
 }

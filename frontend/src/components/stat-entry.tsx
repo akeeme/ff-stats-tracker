@@ -35,6 +35,7 @@ type StatSubmission = {
   pass_breakups?: number
   def_td?: number
   sacks?: number
+  safeties?: number
 }
 
 export function StatEntry() {
@@ -719,6 +720,7 @@ function DefenseStatsForm({
     pass_breakups: 0,
     def_td: 0,
     sacks: 0,
+    safeties: 0,
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -738,6 +740,7 @@ function DefenseStatsForm({
       pass_breakups: 0,
       def_td: 0,
       sacks: 0,
+      safeties: 0,
     })
   }
 
@@ -779,6 +782,7 @@ function DefenseStatsForm({
               { key: 'interceptions', label: 'Interceptions' },
               { key: 'pass_breakups', label: 'Pass Breakups' },
               { key: 'def_td', label: 'Defensive TDs' },
+              { key: 'safeties', label: 'Safeties' },
             ].map(({ key, label }) => (
               <div key={key}>
                 <Label>{label}</Label>

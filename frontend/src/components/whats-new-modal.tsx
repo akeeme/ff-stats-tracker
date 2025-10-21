@@ -6,36 +6,36 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
 // Update this version string whenever you want to show the modal again
-const CURRENT_VERSION = '2025-10-14 v2'
+const CURRENT_VERSION = '2025-10-20 v1'
 
 const WHATS_NEW_CONTENT = {
-  version: 'October 14, 2025 v2',
+  version: 'October 20, 2025',
   title: "What's New",
   features: [
     {
-      emoji: '🏆',
-      title: 'Playoff & Championship Games',
-      description: 'Games can now be marked as Regular Season, Playoff, or Championship. Look for blue playoff badges and gold championship badges throughout the app!'
+      emoji: '🏅',
+      title: 'Player of the Game Awards',
+      description: 'Offensive and Defensive Players of the Game are now automatically calculated and displayed on the Latest Game tab! Scoring uses a weighted system: Receiving/Rushing TDs (10pts), Passing TDs (6pts), Interceptions (8pts), Def TDs/Safeties (10pts), Sacks (5pts), PBUs (4pts), and more. QBs are balanced with heavy penalties for turnovers (INTs -7pts) and incompletions (-0.5 per miss).'
     },
     {
-      emoji: '🔍',
-      title: 'Game Type Filters',
-      description: 'Filter games by type on both the Games page and Stats Viewer. Quickly view only regular season or playoff games with one click.'
+      emoji: '📈',
+      title: 'Catch Percentage Everywhere',
+      description: 'Catch % is now tracked across the dashboard! See it in the Latest Game receiving table, and as a new leaderboard category in Week/Season/All-Time Leaders. Players with the same catch % are ranked by total receptions for fair tiebreaking.'
     },
     {
-      emoji: '📊',
-      title: 'Playoff Stats Tab',
-      description: 'Click on any player to see their new Playoffs tab! View career playoff totals and game-by-game playoff performance with championship games highlighted.'
+      emoji: '🛡️',
+      title: 'Pass Breakups Leaderboard',
+      description: 'Pass Breakups (PBUs) now have their own leaderboard category alongside Interceptions and Flag Pulls, giving defensive playmakers more recognition!'
     },
     {
-      emoji: '📱',
-      title: 'Mobile Improvements',
-      description: 'Better mobile experience across all pages with improved spacing, responsive layouts, and touch-friendly buttons.'
+      emoji: '🎯',
+      title: 'Safeties Stat Added',
+      description: 'Safeties are now tracked throughout the app - in quick stat entry, player profiles, stats viewer, and the defense table on the dashboard.'
     },
     {
       emoji: '⚡',
-      title: 'Performance & Bug Fixes',
-      description: 'Faster page loads, fixed season switching in Stats Viewer, improved Recent Form sorting, and better handling of games without stats.'
+      title: 'Smarter Leaderboards',
+      description: 'Improved leaderboard sorting with tiebreakers and better filtering. Catch % leaderboard includes all players with at least 1 target for complete coverage.'
     }
   ]
 }

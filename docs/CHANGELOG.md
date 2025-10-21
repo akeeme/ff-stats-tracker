@@ -1,5 +1,65 @@
 # Changelog
 
+## 2025-10-20
+
+### Player of the Game Awards, Catch Percentage & Enhanced Stats
+
+#### ✨ Added
+- **Player of the Game Awards**: Automatic calculation and display of offensive and defensive players of the game
+  - Displayed on Latest Game tab with beautiful gradient cards (blue for offense, red for defense)
+  - **Offensive Scoring System**:
+    - Receiving TDs: 10 points
+    - Rushing TDs: 10 points
+    - Passing TDs: 6 points
+    - Receptions: 2.5 points each
+    - Completions: 0.5 points each
+    - First Downs: 2 points each
+    - Interceptions Thrown: -7 points (penalty)
+    - Drops: -3 points (penalty)
+    - Incompletions: -0.5 points each (penalty)
+  - **Defensive Scoring System**:
+    - Defensive TDs: 10 points
+    - Safeties: 10 points
+    - Interceptions: 8 points
+    - Sacks: 5 points
+    - Pass Breakups: 4 points
+    - Flag Pulls: 2 points
+  - Balanced scoring prevents QB dominance with incompletion penalties
+  - Shows player name and key stats in badge format
+- **Catch Percentage Tracking**: Added catch % throughout the dashboard
+  - New column in Latest Game receiving stats table (at the end)
+  - New leaderboard category in Week/Season/All-Time Leaders
+  - Minimum 1 target required to appear on leaderboard
+  - Tiebreaker: Players with same catch % ranked by total receptions
+  - Displays with "%" symbol (e.g., "85%")
+- **Pass Breakups Leaderboard**: New dedicated leaderboard category for PBUs
+  - Appears alongside Interceptions and Flag Pulls in all leader tabs
+  - Gives defensive playmakers more recognition
+- **Safeties Stat**: Added safeties tracking throughout the entire app
+  - Quick Stat Entry: New input field and quick-add button
+  - Player Detail Modal: Included in career stats, season breakdown, and game log
+  - Stats Viewer: Added to defense stats display
+  - Dashboard: New "SAF" column in defense stats table
+  - Database: Added `safeties` column to `player_stats` table
+
+#### 🎨 Improved
+- **Leaderboard Sorting**: Enhanced with tiebreaker logic
+  - Catch % leaderboard uses receptions as tiebreaker when percentages are equal
+  - Ensures fair ranking when multiple players have same percentage
+- **Leaderboard Filtering**: Catch % shows all players with at least 1 target
+  - Previously required 3 targets minimum
+  - Now provides complete coverage of all receivers
+
+#### 🔧 Technical
+- Added `safeties` column to database with migration
+- Updated backend models and API handlers for safeties
+- Created weighted scoring functions for Player of the Game calculations
+- Implemented tiebreaker logic in leaderboard sorting
+- Added suffix support to leaderboard categories for percentage display
+- Updated TypeScript interfaces for new stats
+
+---
+
 ## 2025-10-14
 
 ### Performance Optimization, Bug Fixes & Game Type Feature

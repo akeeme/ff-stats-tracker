@@ -97,6 +97,7 @@ export interface PlayerStats {
   pass_breakups: number;
   def_td: number;
   sacks: number;
+  safeties: number;
   version: number;
   is_deleted: boolean;
   created_at: string;
@@ -288,6 +289,7 @@ export const api = {
     pass_breakups?: number;
     def_td?: number;
     sacks?: number;
+    safeties?: number;
   }) {
     const response = await fetch(`${API_BASE_URL}/stats`, {
       method: 'POST',

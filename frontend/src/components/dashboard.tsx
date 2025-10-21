@@ -270,7 +270,7 @@ function LatestGameStats({ game, stats }: { game: Game | null; stats: PlayerStat
   const qbStats = gameStats.filter(s => s.passes_attempted > 0)
   const receiverStats = gameStats.filter(s => s.targets > 0)
   const rushingStats = gameStats.filter(s => s.rush_attempts > 0)
-  const defenseStats = gameStats.filter(s => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0 || s.def_td > 0)
+  const defenseStats = gameStats.filter(s => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0 || s.def_td > 0 || s.safeties > 0)
 
   // Calculate team totals for passing
   const teamPassingTotals = qbStats.reduce((acc, s) => ({
@@ -294,6 +294,58 @@ function LatestGameStats({ game, stats }: { game: Game | null; stats: PlayerStat
     tds: acc.tds + s.rushing_tds,
     firstDowns: acc.firstDowns + s.first_downs
   }), { attempts: 0, tds: 0, firstDowns: 0 })
+
+  // Calculate Player of the Game - Offensive (balanced to not favor QBs too heavily)
+  const calculateOffensiveScore = (stat: PlayerStats) => {
+    let score = 0
+    // Touchdowns - receiving/rushing weighted higher than passing to balance QB dominance
+    score += stat.passing_tds * 6
+    score += stat.receiving_tds * 10
+    score += stat.rushing_tds * 10
+    // Receptions and completions
+    score += stat.receptions * 2.5
+    score += stat.passes_completed * 0.5
+    // First downs
+    score += stat.first_downs * 2
+    // Penalties
+    score -= stat.interceptions_thrown * 7
+    score -= stat.drops * 3
+    // Incompletion penalty (passes_attempted - passes_completed)
+    const incompletions = stat.passes_attempted - stat.passes_completed
+    score -= incompletions * 0.5
+    return score
+  }
+
+  const offensivePlayerOfGame = gameStats.length > 0
+    ? gameStats
+        .filter(s => s.passes_attempted > 0 || s.targets > 0 || s.rush_attempts > 0)
+        .reduce((best, current) => 
+          calculateOffensiveScore(current) > calculateOffensiveScore(best) ? current : best
+        )
+    : null
+
+  // Calculate Player of the Game - Defensive
+  const calculateDefensiveScore = (stat: PlayerStats) => {
+    let score = 0
+    // High-impact plays
+    score += stat.interceptions * 8
+    score += stat.def_td * 10
+    score += stat.safeties * 10
+    // Medium-impact plays
+    score += stat.pass_breakups * 4
+    score += stat.sacks * 5
+    // Standard plays
+    score += stat.flag_pulls * 2
+    return score
+  }
+
+  const defensivePlayerOfGame = gameStats.length > 0
+    ? gameStats
+        .filter(s => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0 || s.sacks > 0 || s.def_td > 0 || s.safeties > 0)
+        .reduce((best, current) => 
+          calculateDefensiveScore(current) > calculateDefensiveScore(best) ? current : best
+        )
+    : null
 
   const rhinosTeam = game.team1_name === 'Rhinos' ? 'team1' : game.team2_name === 'Rhinos' ? 'team2' : null
   const rhinosScore = rhinosTeam === 'team1' ? game.team1_score : rhinosTeam === 'team2' ? game.team2_score : 0
@@ -434,6 +486,98 @@ function LatestGameStats({ game, stats }: { game: Game | null; stats: PlayerStat
         </div>
       </div>
 
+      {/* Players of the Game */}
+      {(offensivePlayerOfGame || defensivePlayerOfGame) && (
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Offensive Player of the Game */}
+          {offensivePlayerOfGame && (
+            <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-6 border-2 border-blue-400 shadow-lg">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Trophy className="h-6 w-6 text-yellow-300" />
+                  <h4 className="font-black text-white text-lg uppercase tracking-wide">Offensive Player of the Game</h4>
+                </div>
+                <div className="text-3xl font-black text-white mb-2">{offensivePlayerOfGame.player_name}</div>
+                <div className="flex flex-wrap gap-2 text-sm">
+                  {offensivePlayerOfGame.passing_tds > 0 && (
+                    <span className="bg-white/20 px-2 py-1 rounded text-white font-semibold">
+                      {offensivePlayerOfGame.passing_tds} Pass TD
+                    </span>
+                  )}
+                  {offensivePlayerOfGame.receiving_tds > 0 && (
+                    <span className="bg-white/20 px-2 py-1 rounded text-white font-semibold">
+                      {offensivePlayerOfGame.receiving_tds} Rec TD
+                    </span>
+                  )}
+                  {offensivePlayerOfGame.rushing_tds > 0 && (
+                    <span className="bg-white/20 px-2 py-1 rounded text-white font-semibold">
+                      {offensivePlayerOfGame.rushing_tds} Rush TD
+                    </span>
+                  )}
+                  {offensivePlayerOfGame.receptions > 0 && (
+                    <span className="bg-white/20 px-2 py-1 rounded text-white font-semibold">
+                      {offensivePlayerOfGame.receptions} Rec
+                    </span>
+                  )}
+                  {offensivePlayerOfGame.passes_completed > 0 && (
+                    <span className="bg-white/20 px-2 py-1 rounded text-white font-semibold">
+                      {offensivePlayerOfGame.passes_completed}/{offensivePlayerOfGame.passes_attempted} Comp
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Defensive Player of the Game */}
+          {defensivePlayerOfGame && (
+            <div className="relative overflow-hidden bg-gradient-to-br from-red-600 to-red-800 rounded-2xl p-6 border-2 border-red-400 shadow-lg">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield className="h-6 w-6 text-yellow-300" />
+                  <h4 className="font-black text-white text-lg uppercase tracking-wide">Defensive Player of the Game</h4>
+                </div>
+                <div className="text-3xl font-black text-white mb-2">{defensivePlayerOfGame.player_name}</div>
+                <div className="flex flex-wrap gap-2 text-sm">
+                  {defensivePlayerOfGame.interceptions > 0 && (
+                    <span className="bg-white/20 px-2 py-1 rounded text-white font-semibold">
+                      {defensivePlayerOfGame.interceptions} INT
+                    </span>
+                  )}
+                  {defensivePlayerOfGame.def_td > 0 && (
+                    <span className="bg-white/20 px-2 py-1 rounded text-white font-semibold">
+                      {defensivePlayerOfGame.def_td} Def TD
+                    </span>
+                  )}
+                  {defensivePlayerOfGame.safeties > 0 && (
+                    <span className="bg-white/20 px-2 py-1 rounded text-white font-semibold">
+                      {defensivePlayerOfGame.safeties} Safety
+                    </span>
+                  )}
+                  {defensivePlayerOfGame.sacks > 0 && (
+                    <span className="bg-white/20 px-2 py-1 rounded text-white font-semibold">
+                      {defensivePlayerOfGame.sacks} Sack
+                    </span>
+                  )}
+                  {defensivePlayerOfGame.pass_breakups > 0 && (
+                    <span className="bg-white/20 px-2 py-1 rounded text-white font-semibold">
+                      {defensivePlayerOfGame.pass_breakups} PBU
+                    </span>
+                  )}
+                  {defensivePlayerOfGame.flag_pulls > 0 && (
+                    <span className="bg-white/20 px-2 py-1 rounded text-white font-semibold">
+                      {defensivePlayerOfGame.flag_pulls} Pull
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Passing Stats */}
       {qbStats.length > 0 && (
         <div>
@@ -488,24 +632,32 @@ function LatestGameStats({ game, stats }: { game: Game | null; stats: PlayerStat
                   <th className="text-center py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">TGT</th>
                   <th className="text-center py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">TD</th>
                   <th className="text-center py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">DROPS</th>
+                  <th className="text-center py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">CATCH%</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {receiverStats.map((stat, i) => (
-                  <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                    <td className="py-2 px-3 font-medium text-gray-900 dark:text-white">{stat.player_name}</td>
-                    <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.receptions}</td>
-                    <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.targets}</td>
-                    <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.receiving_tds}</td>
-                    <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.drops}</td>
-                  </tr>
-                ))}
+                {receiverStats.map((stat, i) => {
+                  const catchPct = stat.targets > 0 ? Math.round((stat.receptions / stat.targets) * 100) : 0
+                  return (
+                    <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                      <td className="py-2 px-3 font-medium text-gray-900 dark:text-white">{stat.player_name}</td>
+                      <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.receptions}</td>
+                      <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.targets}</td>
+                      <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.receiving_tds}</td>
+                      <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.drops}</td>
+                      <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{catchPct}%</td>
+                    </tr>
+                  )
+                })}
                 <tr className="bg-gray-50 dark:bg-gray-700/50 font-bold">
                   <td className="py-2 px-3 text-gray-900 dark:text-white">TEAM</td>
                   <td className="py-2 px-3 text-center text-gray-900 dark:text-white">{teamReceivingTotals.receptions}</td>
                   <td className="py-2 px-3 text-center text-gray-900 dark:text-white">{teamReceivingTotals.targets}</td>
                   <td className="py-2 px-3 text-center text-gray-900 dark:text-white">{teamReceivingTotals.tds}</td>
                   <td className="py-2 px-3 text-center text-gray-900 dark:text-white">{teamReceivingTotals.drops}</td>
+                  <td className="py-2 px-3 text-center text-gray-900 dark:text-white">
+                    {teamReceivingTotals.targets > 0 ? Math.round((teamReceivingTotals.receptions / teamReceivingTotals.targets) * 100) : 0}%
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -567,6 +719,7 @@ function LatestGameStats({ game, stats }: { game: Game | null; stats: PlayerStat
                   <th className="text-center py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">INT</th>
                   <th className="text-center py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">PBU</th>
                   <th className="text-center py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">TD</th>
+                  <th className="text-center py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">SAF</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -577,6 +730,7 @@ function LatestGameStats({ game, stats }: { game: Game | null; stats: PlayerStat
                     <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.interceptions}</td>
                     <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.pass_breakups}</td>
                     <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.def_td}</td>
+                    <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">{stat.safeties}</td>
                   </tr>
                 ))}
               </tbody>
@@ -735,8 +889,22 @@ function StatLeaders({ stats, title }: { stats: PlayerStats[]; title: string }) 
       icon: Zap
     },
     { 
+      label: 'Catch %', 
+      getValue: (s: PlayerStats) => s.targets > 0 ? Math.round((s.receptions / s.targets) * 100) : 0,
+      filter: (s: PlayerStats) => s.targets >= 1, // Only show players with at least 1 target
+      icon: Target,
+      suffix: '%',
+      tiebreaker: (s: PlayerStats) => s.receptions // Use receptions as tiebreaker for same catch %
+    },
+    { 
       label: 'Interceptions', 
       getValue: (s: PlayerStats) => s.interceptions,
+      filter: (s: PlayerStats) => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0,
+      icon: Shield
+    },
+    { 
+      label: 'Pass Breakups', 
+      getValue: (s: PlayerStats) => s.pass_breakups,
       filter: (s: PlayerStats) => s.flag_pulls > 0 || s.interceptions > 0 || s.pass_breakups > 0,
       icon: Shield
     },
@@ -755,7 +923,14 @@ function StatLeaders({ stats, title }: { stats: PlayerStats[]; title: string }) 
         {categories.map(category => {
           const filteredStats = stats.filter(category.filter)
           const topPlayers = [...filteredStats]
-            .sort((a, b) => category.getValue(b) - category.getValue(a))
+            .sort((a, b) => {
+              const diff = category.getValue(b) - category.getValue(a)
+              // If values are equal and there's a tiebreaker, use it
+              if (diff === 0 && category.tiebreaker) {
+                return category.tiebreaker(b) - category.tiebreaker(a)
+              }
+              return diff
+            })
             .slice(0, 5)
 
           const Icon = category.icon
@@ -806,7 +981,7 @@ function StatLeaders({ stats, title }: { stats: PlayerStats[]; title: string }) 
                       <span className={`text-2xl font-black tabular-nums ${
                         index === 0 ? 'text-red-500' : 'text-red-600'
                       }`}>
-                        {category.getValue(player)}
+                        {category.getValue(player)}{category.suffix || ''}
                       </span>
                     </div>
                   ))
