@@ -25,6 +25,7 @@ func Migrate(db *DB) error {
 		createPlayersTable,
 		createGamesTable,
 		createPlayerStatsTable,
+		createOverhaulTables,
 	}
 
 	for _, tableSQL := range tables {
@@ -50,6 +51,42 @@ func Migrate(db *DB) error {
 	log.Println("Database migrations completed successfully")
 	return nil
 }
+
+// Additive only, safe to run on the live DB at startup. The data backfill (people rows, FK,
+// stat relinking) is a separate reviewed script: db files/2026-11-people-roster.sql.
+const createOverhaulTables = `
+ALTER TABLE statstracker.games ADD COLUMN IF NOT EXISTS game_type VARCHAR(20) DEFAULT 'regular' NOT NULL;
+ALTER TABLE statstracker.players ADD COLUMN IF NOT EXISTS canonical_player_id INTEGER;
+ALTER TABLE statstracker.teams ADD COLUMN IF NOT EXISTS record_manual BOOLEAN DEFAULT FALSE NOT NULL;
+
+-- one row per human; id = players.canonical_player_id. players rows are the per-season roster rows.
+CREATE TABLE IF NOT EXISTS statstracker.people (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    nickname VARCHAR(60),
+    bio VARCHAR(280),
+    avatar_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- anonymous, one per device (device_id = random cookie)
+CREATE TABLE IF NOT EXISTS statstracker.game_reactions (
+    game_id INTEGER NOT NULL REFERENCES statstracker.games(id) ON DELETE CASCADE,
+    device_id UUID NOT NULL,
+    emoji VARCHAR(16) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    PRIMARY KEY (game_id, device_id, emoji)
+);
+CREATE TABLE IF NOT EXISTS statstracker.mvp_votes (
+    game_id INTEGER NOT NULL REFERENCES statstracker.games(id) ON DELETE CASCADE,
+    device_id UUID NOT NULL,
+    person_id INTEGER NOT NULL,
+    voter_name VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    PRIMARY KEY (game_id, device_id)
+);
+`
 
 const createTeamsTable = `
 CREATE TABLE IF NOT EXISTS statstracker.teams (

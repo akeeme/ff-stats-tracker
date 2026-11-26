@@ -48,6 +48,18 @@ func (h *Handlers) SetupRoutes(app fiber.Router) {
 	app.Get("/stats/:id", h.GetPlayerStat)
 	app.Put("/stats/:id", middleware.AdminRequired(), h.UpdatePlayerStats)
 	app.Delete("/stats/:id", middleware.AdminRequired(), h.DeletePlayerStats)
+
+	// Admin session (key -> httpOnly cookie)
+	app.Get("/admin/session", middleware.Session)
+	app.Post("/admin/session", middleware.Login)
+	app.Delete("/admin/session", middleware.Logout)
+
+	// People (one per human) and game social
+	app.Get("/people", h.GetPeople)
+	app.Put("/people/:id", middleware.AdminRequired(), h.UpdatePerson)
+	app.Get("/games/:id/social", h.GetGameSocial)
+	app.Post("/games/:id/react", SocialLimiter(), h.ToggleReaction)
+	app.Post("/games/:id/mvp", SocialLimiter(), h.VoteMVP)
 }
 
 // EndSeason marks all teams from a specific season as inactive

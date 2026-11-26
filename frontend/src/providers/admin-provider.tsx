@@ -1,73 +1,47 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react'
+import { api } from '@/lib/api'
 
+// Admin state comes from the httpOnly session cookie (GET /api/admin/session). The key is typed once on
+// /admin and never stored in the browser. Legacy ?admin= links are stripped without being used.
 interface AdminContextType {
   isAdmin: boolean
   isLoading: boolean
-  setAdminKey: (key: string) => void
-  clearAdmin: () => void
+  login: (key: string) => Promise<void>
+  logout: () => Promise<void>
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined)
 
-const ADMIN_KEY_STORAGE = 'ff_admin_key'
-
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const [isAdmin, setIsAdmin] = useState<boolean>(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check for admin key in URL params
-    const urlParams = new URLSearchParams(window.location.search)
-    const adminParam = urlParams.get('admin')
-    
-    if (adminParam) {
-      localStorage.setItem(ADMIN_KEY_STORAGE, adminParam)
-      setIsAdmin(true)
-      // Clean URL without reloading
-      window.history.replaceState({}, '', window.location.pathname)
-    } else {
-      // Check localStorage for existing admin key
-      const storedKey = localStorage.getItem(ADMIN_KEY_STORAGE)
-      if (storedKey) {
-        setIsAdmin(true)
-      } else {
-        setIsAdmin(false)
-      }
+    localStorage.removeItem('ff_admin_key') // old scheme
+    const url = new URL(window.location.href)
+    if (url.searchParams.has('admin')) {
+      url.searchParams.delete('admin')
+      window.history.replaceState({}, '', url.pathname + url.search)
     }
-    
-    setIsLoading(false)
-    console.log('AdminProvider initialized - isAdmin:', adminParam ? true : !!localStorage.getItem(ADMIN_KEY_STORAGE))
+    api.adminSession().then(r => setIsAdmin(r.admin)).catch(() => setIsAdmin(false)).finally(() => setIsLoading(false))
   }, [])
 
-  const setAdminKey = (key: string) => {
-    localStorage.setItem(ADMIN_KEY_STORAGE, key)
-    setIsAdmin(true)
-  }
-
-  const clearAdmin = () => {
-    localStorage.removeItem(ADMIN_KEY_STORAGE)
+  const login = useCallback(async (key: string) => {
+    const r = await api.adminLogin(key)
+    setIsAdmin(r.admin)
+  }, [])
+  const logout = useCallback(async () => {
+    await api.adminLogout()
     setIsAdmin(false)
-  }
+  }, [])
 
-  return (
-    <AdminContext.Provider value={{ isAdmin, isLoading, setAdminKey, clearAdmin }}>
-      {children}
-    </AdminContext.Provider>
-  )
+  return <AdminContext.Provider value={{ isAdmin, isLoading, login, logout }}>{children}</AdminContext.Provider>
 }
 
 export function useAdmin() {
   const context = useContext(AdminContext)
-  if (context === undefined) {
-    throw new Error('useAdmin must be used within an AdminProvider')
-  }
+  if (context === undefined) throw new Error('useAdmin must be used within an AdminProvider')
   return context
-}
-
-// Helper to get admin key for API calls
-export function getAdminKey(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(ADMIN_KEY_STORAGE)
 }

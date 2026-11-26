@@ -4,4 +4,4 @@ export { useTeamsWithRealtime } from './useTeamsWithRealtime';
 export { usePlayersWithRealtime } from './usePlayersWithRealtime';
 export { useGamesWithRealtime } from './useGamesWithRealtime';
 export { usePlayerStatsWithRealtime } from './usePlayerStatsWithRealtime';
-export { useAdmin, getAdminKey } from './useAdmin';
+export { useAdmin } from './useAdmin';

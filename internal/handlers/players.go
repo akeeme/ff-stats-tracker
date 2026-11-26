@@ -95,6 +95,11 @@ func (h *Handlers) CreatePlayer(c *fiber.Ctx) error {
 	
 	// If this is a new person (no existing canonical_player_id), set it to their own ID
 	if player.CanonicalPlayerID == nil {
+		// person row first: players.canonical_player_id -> people.id once the backfill FK exists
+		if _, err := h.db.Exec(context.Background(),
+			`INSERT INTO statstracker.people (id, name) VALUES ($1, TRIM($2)) ON CONFLICT (id) DO NOTHING`, id, player.Name); err != nil {
+			fmt.Printf("Warning: Failed to create person for new player %d: %v\n", id, err)
+		}
 		updateCanonicalQuery := `
 			UPDATE statstracker.players 
 			SET canonical_player_id = $1 

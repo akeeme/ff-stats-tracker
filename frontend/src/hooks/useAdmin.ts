@@ -1,1 +1,1 @@
-export { useAdmin, getAdminKey } from '@/providers/admin-provider'
+export { useAdmin } from '@/providers/admin-provider'

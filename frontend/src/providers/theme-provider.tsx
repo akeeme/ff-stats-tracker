@@ -61,14 +61,10 @@ export function ThemeProvider({
     toggleTheme,
   }
 
-  // Prevent flash of wrong theme
-  if (!mounted) {
-    return <div className="dark">{children}</div>
-  }
-
+  // Same tree before and after mount: swapping wrappers remounted the whole app (double API fetches).
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
-      {children}
+      <div className={mounted ? undefined : 'dark'} style={{ display: 'contents' }}>{children}</div>
     </ThemeProviderContext.Provider>
   )
 }

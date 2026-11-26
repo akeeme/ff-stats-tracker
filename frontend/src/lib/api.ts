@@ -1,19 +1,31 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+// Same-origin: next.config rewrites /api/* to the Go API, so the httpOnly admin/device cookies are first-party.
+const API_BASE_URL = '/api';
 
-// Helper to get admin key from localStorage
-function getAdminKey(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('ff_admin_key');
+function getHeaders(): HeadersInit {
+  return { 'Content-Type': 'application/json' };
 }
 
-// Helper to add admin key to headers
-function getHeaders(): HeadersInit {
-  const headers: HeadersInit = { 'Content-Type': 'application/json' };
-  const adminKey = getAdminKey();
-  if (adminKey) {
-    headers['X-Admin-Key'] = adminKey;
+async function json<T>(res: Response, what: string): Promise<T> {
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `Failed to ${what}`);
   }
-  return headers;
+  return res.json();
+}
+
+export interface PersonExtra {
+  id: number;
+  name: string;
+  nickname?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+}
+
+export interface GameSocial {
+  reactions: Record<string, number>;
+  mine: string[];
+  mvp: { person_id: number; votes: number }[];
+  my_vote: number | null;
 }
 
 export interface Team {
@@ -26,6 +38,7 @@ export interface Team {
   ties: number;
   is_active: number;
   display_name: string;
+  record_manual?: boolean;
   version: number;
   is_deleted: boolean;
   created_at: string;
@@ -107,6 +120,34 @@ export interface PlayerStats {
 
 // API Functions
 export const api = {
+  // Admin session (key -> httpOnly cookie)
+  async adminSession(): Promise<{ admin: boolean }> {
+    return json(await fetch(`${API_BASE_URL}/admin/session`, { cache: 'no-store' }), 'check admin');
+  },
+  async adminLogin(key: string): Promise<{ admin: boolean }> {
+    return json(await fetch(`${API_BASE_URL}/admin/session`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ key }) }), 'sign in');
+  },
+  async adminLogout(): Promise<{ admin: boolean }> {
+    return json(await fetch(`${API_BASE_URL}/admin/session`, { method: 'DELETE' }), 'sign out');
+  },
+
+  // People (one per human) + game social
+  async getPeople(): Promise<PersonExtra[]> {
+    return json(await fetch(`${API_BASE_URL}/people`), 'fetch people');
+  },
+  async updatePerson(id: number, body: { nickname?: string; bio?: string; avatar_url?: string }) {
+    return json(await fetch(`${API_BASE_URL}/people/${id}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(body) }), 'update person');
+  },
+  async getGameSocial(gameId: number): Promise<GameSocial> {
+    return json(await fetch(`${API_BASE_URL}/games/${gameId}/social`, { cache: 'no-store' }), 'fetch reactions');
+  },
+  async react(gameId: number, emoji: string) {
+    return json(await fetch(`${API_BASE_URL}/games/${gameId}/react`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ emoji }) }), 'react');
+  },
+  async voteMvp(gameId: number, personId: number, voterName?: string) {
+    return json(await fetch(`${API_BASE_URL}/games/${gameId}/mvp`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ person_id: personId, voter_name: voterName || '' }) }), 'vote');
+  },
+
   // Teams
   async getTeams(): Promise<Team[]> {
     const response = await fetch(`${API_BASE_URL}/teams`);
