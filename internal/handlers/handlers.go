@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 
+	"ff-stats-tracker/internal/avatar"
 	"ff-stats-tracker/internal/database"
 	"ff-stats-tracker/internal/middleware"
 	"ff-stats-tracker/internal/models"
@@ -11,11 +12,12 @@ import (
 )
 
 type Handlers struct {
-	db *database.DB
+	db      *database.DB
+	avatars *avatar.Store // nil when S3_* env is unset
 }
 
 func New(db *database.DB) *Handlers {
-	return &Handlers{db: db}
+	return &Handlers{db: db, avatars: avatar.FromEnv()}
 }
 
 func (h *Handlers) SetupRoutes(app fiber.Router) {
@@ -57,6 +59,7 @@ func (h *Handlers) SetupRoutes(app fiber.Router) {
 	// People (one per human) and game social
 	app.Get("/people", h.GetPeople)
 	app.Put("/people/:id", middleware.AdminRequired(), h.UpdatePerson)
+	app.Post("/people/:id/avatar", middleware.AdminRequired(), h.UploadAvatar)
 	app.Get("/games/:id/social", h.GetGameSocial)
 	app.Post("/games/:id/react", SocialLimiter(), h.ToggleReaction)
 	app.Post("/games/:id/mvp", SocialLimiter(), h.VoteMVP)

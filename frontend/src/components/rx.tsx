@@ -60,15 +60,47 @@ export function Loading({ error }: { error?: unknown }) {
 }
 
 export function Avatar({ person, size = 44 }: { person?: Pick<Person, 'name' | 'avatar_url'>; size?: number }) {
-  const [broken, setBroken] = useState(false)
+  const [broken, setBroken] = useState<string>() // the URL that failed, so a replaced photo gets a fresh try
   const name = person?.name ?? '?'
+  const url = person?.avatar_url
   return (
     <span className="rx-av" style={{ width: size, height: size }}>
-      {person?.avatar_url && !broken
+      {url && url !== broken
         // eslint-disable-next-line @next/next/no-img-element
-        ? <img src={person.avatar_url} alt="" onError={() => setBroken(true)} loading="lazy" />
+        ? <img src={url} alt="" onError={() => setBroken(url)} loading="lazy" />
         : <span style={{ fontSize: size * 0.38 }} aria-hidden="true">{initials(name)}</span>}
     </span>
+  )
+}
+
+const MAX_PHOTO = 5 * 1024 * 1024
+
+/** Admin-only photo upload/replace. The server re-checks type and size; this just saves a wasted upload. */
+export function PhotoUpload({ personId, hasPhoto }: { personId: number; hasPhoto: boolean }) {
+  const { isAdmin } = useAdmin()
+  const qc = useQueryClient()
+  const [msg, setMsg] = useState('')
+  const up = useMutation({
+    mutationFn: (f: File) => api.uploadAvatar(personId, f),
+    onSuccess: () => { setMsg('Photo saved'); return qc.invalidateQueries({ queryKey: ['people'] }) },
+    onError: (e: Error) => setMsg(e.message),
+  })
+  if (!isAdmin) return null
+  const pick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (!f) return
+    if (f.size > MAX_PHOTO) return setMsg('Image is larger than 5 MB')
+    setMsg(''); up.mutate(f)
+  }
+  return (
+    <div className="rx-upload">
+      <label className="rx-btn ghost" aria-disabled={up.isPending}>
+        {up.isPending ? 'Uploading…' : hasPhoto ? '📷 Replace photo' : '📷 Upload photo'}
+        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={pick} disabled={up.isPending} className="rx-sr" />
+      </label>
+      <span role="status" className={up.isError || (msg && msg !== 'Photo saved') ? 'rx-err' : 'rx-muted'}>{msg}</span>
+    </div>
   )
 }
 

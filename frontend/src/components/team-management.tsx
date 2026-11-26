@@ -5,9 +5,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { api, Team, Player } from '@/lib/api'
+import { api, Team } from '@/lib/api'
 import { Plus, Users, Trophy, Edit, Trash2, ArrowUpDown, Loader2 } from 'lucide-react'
-import { useTeamsWithRealtime, usePlayersWithRealtime, useAdmin } from '@/hooks'
+import { useTeamsWithRealtime, useAdmin } from '@/hooks'
 import { useToast } from '@/hooks/use-toast'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 
@@ -354,95 +354,6 @@ function CreateTeamForm({ selectedSeason, onSubmit, isLoading }: { selectedSeaso
   )
 }
 
-function _CreatePlayerForm({ 
-  teams, 
-  season, 
-  onSubmit 
-}: { 
-  teams: Team[]
-  season: number
-  onSubmit: (player: { name: string; team_name: string; season: number; jersey_number?: string }) => void 
-}) {
-  const [formData, setFormData] = useState({
-    name: '',
-    team_name: '',
-    jersey_number: '',
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit({
-      ...formData,
-      season,
-      jersey_number: formData.jersey_number || undefined,
-    })
-    setFormData({ name: '', team_name: '', jersey_number: '' })
-  }
-
-  return (
-    <div className="relative card-modern p-8 border-2 border-blue-500/50 dark:border-blue-500/60 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-gray-800 shadow-xl shadow-blue-500/20 hover:shadow-2xl hover:shadow-blue-500/30 transition-all duration-300 hover:border-blue-500/70 dark:hover:border-blue-500/80">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full"></div>
-      <div className="flex items-center gap-3 mb-6 relative z-10">
-        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/50 ring-2 ring-blue-500/20">
-          <Users className="h-6 w-6 text-white" />
-        </div>
-        <div>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Add New Player</h3>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Add a player to a team for the current season</p>
-        </div>
-      </div>
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <Label htmlFor="player-name" className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">Player Name</Label>
-          <Input
-            id="player-name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="input-modern"
-            placeholder="Enter player name"
-            required
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="team-select" className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">Team</Label>
-          <select
-            id="team-select"
-            value={formData.team_name}
-            onChange={(e) => setFormData({ ...formData, team_name: e.target.value })}
-            className="input-modern"
-            required
-          >
-            <option value="">Select a team</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.name}>
-                {team.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div>
-          <Label htmlFor="jersey" className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">Jersey Number (Optional)</Label>
-          <Input
-            id="jersey"
-            value={formData.jersey_number}
-            onChange={(e) => setFormData({ ...formData, jersey_number: e.target.value })}
-            className="input-modern"
-            placeholder="Enter jersey number"
-          />
-        </div>
-        
-        <Button type="submit" className="btn-primary w-full">
-          <Users className="h-4 w-4 mr-2" />
-          Add Player
-        </Button>
-      </form>
-    </div>
-  )
-}
-
 function TeamCard({ 
   team, 
   isAdmin,
@@ -618,31 +529,6 @@ function TeamCard({
             )}
           </div>
           <div className="text-sm font-medium text-yellow-700">Ties</div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function _PlayerCard({ player }: { player: Player }) {
-  return (
-    <div className="relative card-modern p-6 border-2 border-gray-200/50 dark:border-gray-600/50 hover:border-blue-400/60 dark:hover:border-blue-500/60 hover:shadow-2xl hover:shadow-blue-500/20 transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80">
-      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400/10 to-transparent rounded-bl-full"></div>
-      <div className="flex items-center gap-4 relative z-10">
-        <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/20">
-          <Users className="h-7 w-7 text-white" />
-        </div>
-        <div className="flex-1">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-            {player.jersey_number ? `#${player.jersey_number}` : ''} {player.name}
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{player.team_name} - Season {player.season}</p>
-          <div className="flex items-center gap-2 mt-2">
-            <div className={`w-2 h-2 rounded-full ${player.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {player.is_active ? 'Active' : 'Inactive'}
-            </span>
-          </div>
         </div>
       </div>
     </div>

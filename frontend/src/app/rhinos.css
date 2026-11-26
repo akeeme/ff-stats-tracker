@@ -105,7 +105,12 @@ a.rx-card{display:block;color:inherit;text-decoration:none}
 .rx-input{width:100%;font:inherit;background:#0b0c0e;color:var(--rx-txt);border:1px solid var(--rx-line);border-radius:12px;padding:12px 14px}
 .rx-btn{font:inherit;font-weight:800;background:var(--rx-txt);color:#000;border:0;border-radius:999px;padding:11px 18px;cursor:pointer;text-decoration:none;display:inline-block}
 .rx-btn.ghost{background:var(--rx-card);color:var(--rx-txt);border:1px solid var(--rx-line)}
-.rx-btn:disabled{opacity:.5}
+.rx-btn:disabled,.rx-btn[aria-disabled=true]{opacity:.5}
+.rx-upload{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:13px}
+.rx-upload .rx-btn{font-size:13px;padding:8px 14px}
+.rx-upload .rx-btn:focus-within{outline:2px solid var(--rx-gold);outline-offset:2px}
+.rx-upload .rx-err{margin:0}
+.rx-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .rx-pad{padding:14px 16px}
 .rx-err{color:var(--rx-loss);font-size:13px;margin-top:8px}
 .rx-skel{margin:16px;height:140px;border-radius:16px;background:linear-gradient(90deg,#111214,#1a1c20,#111214);background-size:200% 100%;animation:rx-sh 1.2s infinite}

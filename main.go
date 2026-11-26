@@ -45,6 +45,7 @@ func main() {
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
 		ErrorHandler: middleware.ErrorHandler,
+		BodyLimit:    6 << 20, // avatar uploads are capped at 5 MB in the handler; fiber's default is 4 MB
 	})
 
 	// Middleware

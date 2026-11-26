@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useState } from 'react'
 import { useRhinos } from '@/hooks/use-rhinos'
-import { Avatar, Loading, SeasonChips, TopBar } from '@/components/rx'
+import { Avatar, Loading, PhotoUpload, SeasonChips, TopBar } from '@/components/rx'
 import { addLine, careerRank, emptyLine, gameLabel, pct, side, statLine, totalTD, type Row, type StatKey } from '@/lib/derive'
 
 const SIG: [StatKey, string][] = [['passing_tds', 'Pass TD'], ['receiving_tds', 'Rec TD'], ['rushing_tds', 'Rush TD'],
@@ -59,6 +59,7 @@ export default function PlayerPage() {
             <div className="rx-sub">{jersey && <b>#{jersey} · </b>}{pos && `${pos} · `}Rhinos since S{Math.min(...seasons)}</div>
           </div>
         </div>
+        <PhotoUpload personId={person.id} hasPhoto={!!person.avatar_url} />
         {person.bio && <p className="rx-sub" style={{ marginTop: 10 }}>{person.bio}</p>}
         {sig && <div className="rx-sig"><b>{sig.v}</b><div>Signature stat<strong>{sig.label}, career</strong></div><span className="rx-rk">#{sig.r} all-time</span></div>}
       </section>

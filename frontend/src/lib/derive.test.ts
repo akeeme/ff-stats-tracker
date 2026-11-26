@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- partial fixtures cast to the API types */
 // Run: node --test src/lib/derive.test.ts   (Node >= 23 strips types natively)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'

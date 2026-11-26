@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAdmin } from '@/providers/admin-provider'
 import { useRhinos } from '@/hooks/use-rhinos'
 import { api } from '@/lib/api'
-import { Avatar, TopBar } from '@/components/rx'
+import { Avatar, PhotoUpload, TopBar } from '@/components/rx'
 
 export default function AdminPage() {
   const { isAdmin, isLoading, login, logout } = useAdmin()
@@ -52,14 +52,14 @@ function PeopleEditor() {
   const { data: d } = useRhinos()
   const qc = useQueryClient()
   const [sel, setSel] = useState<number>()
-  const [form, setForm] = useState({ nickname: '', bio: '', avatar_url: '' })
+  const [form, setForm] = useState({ nickname: '', bio: '' })
   const [msg, setMsg] = useState('')
   if (!d) return null
   const people = [...d.people.values()].sort((a, b) => a.name.localeCompare(b.name))
   const choose = (id: number) => {
     const p = d.people.get(id)!
     setSel(id); setMsg('')
-    setForm({ nickname: p.nickname ?? '', bio: p.bio ?? '', avatar_url: p.avatar_url ?? '' })
+    setForm({ nickname: p.nickname ?? '', bio: p.bio ?? '' })
   }
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,13 +76,11 @@ function PeopleEditor() {
           {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
         {sel && <>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}><Avatar person={{ name: d.people.get(sel)!.name, avatar_url: form.avatar_url }} size={56} /><span className="rx-muted" style={{ fontSize: 12 }}>Photo upload: next step (see REPORT-2). For now paste an https URL from the avatar bucket.</span></div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}><Avatar person={d.people.get(sel)} size={56} /><PhotoUpload personId={sel} hasPhoto={!!d.people.get(sel)!.avatar_url} /></div>
           <label htmlFor="nick" className="rx-muted">Nickname</label>
           <input id="nick" className="rx-input" maxLength={60} value={form.nickname} onChange={e => setForm({ ...form, nickname: e.target.value })} />
           <label htmlFor="bio" className="rx-muted">Bio / shoutout</label>
           <textarea id="bio" className="rx-input" maxLength={280} rows={3} value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} />
-          <label htmlFor="av" className="rx-muted">Avatar URL</label>
-          <input id="av" className="rx-input" inputMode="url" value={form.avatar_url} onChange={e => setForm({ ...form, avatar_url: e.target.value })} />
           <button className="rx-btn">Save</button>
           {msg && <p className={msg === 'Saved' ? 'rx-muted' : 'rx-err'} role="status">{msg}</p>}
         </>}

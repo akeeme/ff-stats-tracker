@@ -247,8 +247,8 @@ function CreateGameForm({
   const [formData, setFormData] = useState({
     team1_name: '',
     team2_name: '',
-    team1_score: '' as any,
-    team2_score: '' as any,
+    team1_score: '',
+    team2_score: '',
     week: 1,
     game_type: 'regular' as 'regular' | 'playoff' | 'championship',
     winning_team_name: '',
@@ -287,8 +287,8 @@ function CreateGameForm({
     setFormData({ 
       team1_name: '', 
       team2_name: '', 
-      team1_score: '' as any,
-      team2_score: '' as any,
+      team1_score: '',
+      team2_score: '',
       week: 1,
       game_type: 'regular',
       winning_team_name: '',
@@ -335,7 +335,7 @@ function CreateGameForm({
                 type="number"
                 min="0"
                 value={formData.team1_score}
-                onChange={(e) => setFormData({ ...formData, team1_score: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, team1_score: e.target.value })}
                 onFocus={(e) => e.target.select()}
                 className="input-modern"
                 placeholder="0"
@@ -369,7 +369,7 @@ function CreateGameForm({
                 type="number"
                 min="0"
                 value={formData.team2_score}
-                onChange={(e) => setFormData({ ...formData, team2_score: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, team2_score: e.target.value })}
                 onFocus={(e) => e.target.select()}
                 className="input-modern"
                 placeholder="0"

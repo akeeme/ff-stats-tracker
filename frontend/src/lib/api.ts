@@ -138,6 +138,11 @@ export const api = {
   async updatePerson(id: number, body: { nickname?: string; bio?: string; avatar_url?: string }) {
     return json(await fetch(`${API_BASE_URL}/people/${id}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(body) }), 'update person');
   },
+  async uploadAvatar(id: number, file: File): Promise<{ avatar_url: string }> {
+    const body = new FormData();
+    body.append('file', file);
+    return json(await fetch(`${API_BASE_URL}/people/${id}/avatar`, { method: 'POST', body }), 'upload photo');
+  },
   async getGameSocial(gameId: number): Promise<GameSocial> {
     return json(await fetch(`${API_BASE_URL}/games/${gameId}/social`, { cache: 'no-store' }), 'fetch reactions');
   },

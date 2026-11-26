@@ -87,7 +87,7 @@ func validatePerson(nick, bio, avatar *string) string {
 		return "bio too long (280 max)"
 	}
 	if avatar != nil && *avatar != "" {
-		allowed := os.Getenv("AVATAR_URL_PREFIX") // e.g. https://sb.keemlab.com/storage/v1/object/public/rhinos-avatars/
+		allowed := os.Getenv("AVATAR_URL_PREFIX") // e.g. https://s3-api.keemlab.com/rhinos-avatars/
 		if len(*avatar) > 500 || !strings.HasPrefix(*avatar, "https://") || (allowed != "" && !strings.HasPrefix(*avatar, allowed)) {
 			return "avatar_url must be an https URL from the avatar bucket"
 		}
