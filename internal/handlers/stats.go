@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -10,7 +12,18 @@ import (
 	"ff-stats-tracker/internal/models"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5"
 )
+
+// badCounts rejects negative or absurd stat values (no validator is wired up; the tags are decorative).
+func badCounts(vals []*int) string {
+	for _, v := range vals {
+		if v != nil && (*v < 0 || *v > 999) {
+			return "Stat values must be between 0 and 999"
+		}
+	}
+	return ""
+}
 
 // Helper function to get int value from pointer, returns 0 if nil
 func getIntValue(ptr *int) int {
@@ -30,45 +43,58 @@ func (h *Handlers) CreatePlayerStats(c *fiber.Ctx) error {
 			},
 		})
 	}
-	
-	fmt.Printf("Received stat entry request: %+v\n", req)
 
-	// Find player by name
-	var playerID int
-	playerQuery := "SELECT id FROM statstracker.players WHERE name = $1 AND is_deleted = false"
-	err := h.db.QueryRow(context.Background(), playerQuery, req.PlayerName).Scan(&playerID)
-	if err != nil {
-		fmt.Printf("Error finding player '%s': %v\n", req.PlayerName, err)
-		return c.Status(404).JSON(models.PlayerStatsResponse{
-			BaseResponse: models.BaseResponse{
-				Success: false,
-				Message: fmt.Sprintf("Player '%s' not found: %v", req.PlayerName, err),
-			},
-		})
+	fmt.Printf("Received stat entry request: %+v\n", req)
+	if msg := badCounts(req.Counts()); msg != "" {
+		return c.Status(400).JSON(models.PlayerStatsResponse{BaseResponse: models.BaseResponse{Success: false, Message: msg}})
 	}
 
-	// Find game by week, season, league, and teams
-	var gameID int
-	gameQuery := `
+	var playerID, gameID int
+	byID := req.PlayerID > 0 && req.GameID > 0
+	if byID {
+		var ok bool
+		if err := h.db.QueryRow(c.Context(), `SELECT EXISTS(SELECT 1 FROM statstracker.players WHERE id = $1 AND is_deleted = false)
+			AND EXISTS(SELECT 1 FROM statstracker.games WHERE id = $2 AND is_deleted = false)`, req.PlayerID, req.GameID).Scan(&ok); err != nil || !ok {
+			return c.Status(404).JSON(models.PlayerStatsResponse{BaseResponse: models.BaseResponse{Success: false, Message: "Player or game not found"}})
+		}
+		playerID, gameID = req.PlayerID, req.GameID
+	} else {
+		// Find player by name
+		playerQuery := "SELECT id FROM statstracker.players WHERE name = $1 AND is_deleted = false"
+		err := h.db.QueryRow(context.Background(), playerQuery, req.PlayerName).Scan(&playerID)
+		if err != nil {
+			fmt.Printf("Error finding player '%s': %v\n", req.PlayerName, err)
+			return c.Status(404).JSON(models.PlayerStatsResponse{
+				BaseResponse: models.BaseResponse{
+					Success: false,
+					Message: fmt.Sprintf("Player '%s' not found: %v", req.PlayerName, err),
+				},
+			})
+		}
+
+		// Find game by week, season, league, and teams
+		gameQuery := `
 		SELECT g.id FROM statstracker.games g
 		LEFT JOIN statstracker.teams t1 ON g.team1_id = t1.id
 		LEFT JOIN statstracker.teams t2 ON g.team2_id = t2.id
 		WHERE g.week = $1 AND g.season = $2 AND g.league = $3 
 		AND t1.name = $4 AND t2.name = $5 AND g.is_deleted = false
 	`
-	err = h.db.QueryRow(context.Background(), gameQuery,
-		req.GameWeek, req.GameSeason, req.League, req.Team1Name, req.Team2Name,
-	).Scan(&gameID)
-	if err != nil {
-		fmt.Printf("Error finding game (week %d, season %d, league %s, %s vs %s): %v\n",
-			req.GameWeek, req.GameSeason, req.League, req.Team1Name, req.Team2Name, err)
-		return c.Status(404).JSON(models.PlayerStatsResponse{
-			BaseResponse: models.BaseResponse{
-				Success: false,
-				Message: fmt.Sprintf("Game not found for week %d, season %d, league %s between %s and %s: %v",
-					req.GameWeek, req.GameSeason, req.League, req.Team1Name, req.Team2Name, err),
-			},
-		})
+		err = h.db.QueryRow(context.Background(), gameQuery,
+			req.GameWeek, req.GameSeason, req.League, req.Team1Name, req.Team2Name,
+		).Scan(&gameID)
+		if err != nil {
+			fmt.Printf("Error finding game (week %d, season %d, league %s, %s vs %s): %v\n",
+				req.GameWeek, req.GameSeason, req.League, req.Team1Name, req.Team2Name, err)
+			return c.Status(404).JSON(models.PlayerStatsResponse{
+				BaseResponse: models.BaseResponse{
+					Success: false,
+					Message: fmt.Sprintf("Game not found for week %d, season %d, league %s between %s and %s: %v",
+						req.GameWeek, req.GameSeason, req.League, req.Team1Name, req.Team2Name, err),
+				},
+			})
+		}
+
 	}
 
 	// Check if stats already exist for this player and game
@@ -78,13 +104,16 @@ func (h *Handlers) CreatePlayerStats(c *fiber.Ctx) error {
 		SELECT id, version FROM statstracker.player_stats 
 		WHERE player_id = $1 AND game_id = $2 AND is_deleted = false
 	`
-	err = h.db.QueryRow(context.Background(), checkQuery, playerID, gameID).Scan(&existingID, &existingVersion)
-	
+	err := h.db.QueryRow(context.Background(), checkQuery, playerID, gameID).Scan(&existingID, &existingVersion)
+
+	if err == nil && byID {
+		return c.Status(409).JSON(models.PlayerStatsResponse{BaseResponse: models.BaseResponse{Success: false, Message: "Stats already exist for this player and game. Reload and edit them."}})
+	}
 	// If stats exist, update them by adding the new values
 	if err == nil {
 		fmt.Printf("Found existing stats (id: %d) for player %d in game %d, updating...\n", existingID, playerID, gameID)
-		
-			updateQuery := `
+
+		updateQuery := `
 			UPDATE statstracker.player_stats 
 			SET 
 				passing_tds = passing_tds + $1,
@@ -111,12 +140,12 @@ func (h *Handlers) CreatePlayerStats(c *fiber.Ctx) error {
 			          receptions, targets, receiving_tds, drops, first_downs, rushing_tds, rush_attempts,
 			          flag_pulls, sacks, interceptions, pass_breakups, def_td, safeties, version, is_deleted, created_at, updated_at, deleted_at
 		`
-		
+
 		var stats models.PlayerStats
 		err = h.db.QueryRow(context.Background(), updateQuery,
 			getIntValue(req.PassingTDs), getIntValue(req.PassesCompleted), getIntValue(req.PassesAttempted), getIntValue(req.InterceptionsThrown),
 			getIntValue(req.Receptions), getIntValue(req.Targets), getIntValue(req.ReceivingTDs), getIntValue(req.Drops), getIntValue(req.FirstDowns),
-			getIntValue(req.RushingTDs), getIntValue(req.RushAttempts), getIntValue(req.FlagPulls), getIntValue(req.Sacks), getIntValue(req.Interceptions), 
+			getIntValue(req.RushingTDs), getIntValue(req.RushAttempts), getIntValue(req.FlagPulls), getIntValue(req.Sacks), getIntValue(req.Interceptions),
 			getIntValue(req.PassBreakups), getIntValue(req.DefTD), getIntValue(req.Safeties),
 			time.Now(), existingID,
 		).Scan(
@@ -125,7 +154,7 @@ func (h *Handlers) CreatePlayerStats(c *fiber.Ctx) error {
 			&stats.FlagPulls, &stats.Sacks, &stats.Interceptions, &stats.PassBreakups, &stats.DefTD, &stats.Safeties,
 			&stats.Version, &stats.IsDeleted, &stats.CreatedAt, &stats.UpdatedAt, &stats.DeletedAt,
 		)
-		
+
 		if err != nil {
 			fmt.Printf("Error updating player stats: %v\n", err)
 			return c.Status(500).JSON(models.PlayerStatsResponse{
@@ -135,7 +164,7 @@ func (h *Handlers) CreatePlayerStats(c *fiber.Ctx) error {
 				},
 			})
 		}
-		
+
 		return c.Status(200).JSON(models.PlayerStatsResponse{
 			BaseResponse: models.BaseResponse{
 				Success: true,
@@ -266,24 +295,24 @@ func (h *Handlers) GetPlayerStats(c *fiber.Ctx) error {
 	if !includeDeleted {
 		conditions = append(conditions, "ps.is_deleted = false")
 	}
-	
+
 	args := []interface{}{}
 	argCounter := 1
-	
+
 	if season != "" {
 		conditions = append(conditions, fmt.Sprintf("g.season = $%d", argCounter))
 		seasonInt, _ := strconv.Atoi(season)
 		args = append(args, seasonInt)
 		argCounter++
 	}
-	
+
 	if gameID != "" {
 		conditions = append(conditions, fmt.Sprintf("ps.game_id = $%d", argCounter))
 		gameIDInt, _ := strconv.Atoi(gameID)
 		args = append(args, gameIDInt)
 		argCounter++
 	}
-	
+
 	whereClause := ""
 	if len(conditions) > 0 {
 		whereClause = "WHERE " + strings.Join(conditions, " AND ")
@@ -456,6 +485,10 @@ func (h *Handlers) UpdatePlayerStats(c *fiber.Ctx) error {
 		})
 	}
 
+	if msg := badCounts(req.Counts()); msg != "" {
+		return c.Status(400).JSON(models.PlayerStatsResponse{BaseResponse: models.BaseResponse{Success: false, Message: msg}})
+	}
+
 	// Check if stats exist and get current version
 	var currentVersion int
 	checkQuery := "SELECT version FROM statstracker.player_stats WHERE id = $1 AND is_deleted = false"
@@ -577,26 +610,16 @@ func (h *Handlers) UpdatePlayerStats(c *fiber.Ctx) error {
 		argIndex++
 	}
 
-	args = append(args, id)
+	// version in WHERE makes the optimistic lock atomic (the check above alone races)
+	args = append(args, id, version)
 	updateQuery := fmt.Sprintf(`
-		UPDATE player_stats 
-		SET %s 
-		WHERE id = $%d AND is_deleted = false
+		UPDATE statstracker.player_stats
+		SET %s
+		WHERE id = $%d AND version = $%d AND is_deleted = false
 		RETURNING id, player_id, game_id, passing_tds, passes_completed, passes_attempted, interceptions_thrown,
 		          receptions, targets, receiving_tds, drops, first_downs, rushing_tds, rush_attempts,
 		          flag_pulls, sacks, interceptions, pass_breakups, def_td, safeties, version, is_deleted, created_at, updated_at, deleted_at
-	`, fmt.Sprintf("%s", setParts[0]), argIndex)
-
-	for i := 1; i < len(setParts); i++ {
-		updateQuery = fmt.Sprintf(`
-			UPDATE player_stats 
-			SET %s 
-			WHERE id = $%d AND is_deleted = false
-			RETURNING id, player_id, game_id, passing_tds, passes_completed, passes_attempted, interceptions_thrown,
-			          receptions, targets, receiving_tds, drops, first_downs, rushing_tds, rush_attempts,
-			          flag_pulls, sacks, interceptions, pass_breakups, def_td, safeties, version, is_deleted, created_at, updated_at, deleted_at
-		`, fmt.Sprintf("%s, %s", setParts[0], setParts[i]), argIndex)
-	}
+	`, strings.Join(setParts, ", "), argIndex, argIndex+1)
 
 	var stats models.PlayerStats
 	err = h.db.QueryRow(context.Background(), updateQuery, args...).Scan(
@@ -606,7 +629,11 @@ func (h *Handlers) UpdatePlayerStats(c *fiber.Ctx) error {
 		&stats.Version, &stats.IsDeleted, &stats.CreatedAt, &stats.UpdatedAt, &stats.DeletedAt,
 	)
 
+	if errors.Is(err, pgx.ErrNoRows) {
+		return c.Status(409).JSON(models.PlayerStatsResponse{BaseResponse: models.BaseResponse{Success: false, Message: "Record has been modified. Please refresh and try again."}})
+	}
 	if err != nil {
+		log.Printf("UpdatePlayerStats %d: %v", id, err)
 		return c.Status(500).JSON(models.PlayerStatsResponse{
 			BaseResponse: models.BaseResponse{
 				Success: false,

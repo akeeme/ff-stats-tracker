@@ -1,5 +1,5 @@
-import { Standings } from '@/components/standings'
+import { redirect } from 'next/navigation'
 
-export default function StandingsPage() {
-  return <Standings />
+export default function Page() {
+  redirect('/games')
 }

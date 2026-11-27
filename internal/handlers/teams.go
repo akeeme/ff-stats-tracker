@@ -102,7 +102,7 @@ func (h *Handlers) GetTeams(c *fiber.Ctx) error {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, name, season, league, wins, losses, ties, is_active, version, is_deleted, created_at, updated_at, deleted_at
+		SELECT id, name, season, league, wins, losses, ties, is_active, record_manual, version, is_deleted, created_at, updated_at, deleted_at
 		FROM teams %s
 		ORDER BY id
 		LIMIT $1 OFFSET $2
@@ -127,7 +127,7 @@ func (h *Handlers) GetTeams(c *fiber.Ctx) error {
 		var team models.Team
 		err := rows.Scan(
 			&team.ID, &team.Name, &team.Season, &team.League, &team.Wins, &team.Losses, &team.Ties,
-			&team.IsActive, &team.Version, &team.IsDeleted, &team.CreatedAt, &team.UpdatedAt, &team.DeletedAt,
+			&team.IsActive, &team.RecordManual, &team.Version, &team.IsDeleted, &team.CreatedAt, &team.UpdatedAt, &team.DeletedAt,
 		)
 		if err != nil {
 			return c.Status(500).JSON(models.BaseResponse{
@@ -162,14 +162,14 @@ func (h *Handlers) GetTeam(c *fiber.Ctx) error {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, name, season, league, wins, losses, ties, is_active, version, is_deleted, created_at, updated_at, deleted_at
+		SELECT id, name, season, league, wins, losses, ties, is_active, record_manual, version, is_deleted, created_at, updated_at, deleted_at
 		FROM teams %s
 	`, whereClause)
 
 	var team models.Team
 	err = h.db.QueryRow(context.Background(), query, args...).Scan(
 		&team.ID, &team.Name, &team.Season, &team.League, &team.Wins, &team.Losses, &team.Ties,
-		&team.IsActive, &team.Version, &team.IsDeleted, &team.CreatedAt, &team.UpdatedAt, &team.DeletedAt,
+		&team.IsActive, &team.RecordManual, &team.Version, &team.IsDeleted, &team.CreatedAt, &team.UpdatedAt, &team.DeletedAt,
 	)
 
 	if err != nil {
@@ -286,6 +286,11 @@ func (h *Handlers) UpdateTeam(c *fiber.Ctx) error {
 		args = append(args, *req.IsActive)
 		argIndex++
 	}
+	if req.RecordManual != nil {
+		setParts = append(setParts, fmt.Sprintf("record_manual = $%d", argIndex))
+		args = append(args, *req.RecordManual)
+		argIndex++
+	}
 
 	args = append(args, id)
 	
@@ -302,13 +307,13 @@ func (h *Handlers) UpdateTeam(c *fiber.Ctx) error {
 		UPDATE statstracker.teams 
 		SET %s 
 		WHERE id = $%d AND is_deleted = false
-		RETURNING id, name, season, league, wins, losses, ties, is_active, version, is_deleted, created_at, updated_at, deleted_at
+		RETURNING id, name, season, league, wins, losses, ties, is_active, record_manual, version, is_deleted, created_at, updated_at, deleted_at
 	`, setClause, argIndex)
 
 	var team models.Team
 	err = h.db.QueryRow(context.Background(), updateQuery, args...).Scan(
 		&team.ID, &team.Name, &team.Season, &team.League, &team.Wins, &team.Losses, &team.Ties,
-		&team.IsActive, &team.Version, &team.IsDeleted, &team.CreatedAt, &team.UpdatedAt, &team.DeletedAt,
+		&team.IsActive, &team.RecordManual, &team.Version, &team.IsDeleted, &team.CreatedAt, &team.UpdatedAt, &team.DeletedAt,
 	)
 
 	if err != nil {

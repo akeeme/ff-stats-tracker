@@ -1,7 +1,5 @@
-'use client'
+import { redirect } from 'next/navigation'
 
-import { TeamManagement } from '@/components/team-management'
-
-export default function TeamsPage() {
-  return <TeamManagement />
+export default function Page() {
+  redirect('/admin/teams')
 }

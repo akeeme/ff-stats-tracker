@@ -21,6 +21,8 @@ type TeamUpdateRequest struct {
 	Losses   *int    `json:"losses,omitempty"`
 	Ties     *int    `json:"ties,omitempty"`
 	IsActive *int    `json:"is_active,omitempty"`
+	// RecordManual pins the stored W/L for this team row
+	RecordManual *bool `json:"record_manual,omitempty"`
 }
 
 // Player requests
@@ -71,6 +73,9 @@ type GameUpdateRequest struct {
 
 // PlayerStats requests
 type PlayerStatsCreateRequest struct {
+	// Either player_id + game_id (stat entry UI; 409 if the row exists) or the legacy name/team lookup (adds to an existing row).
+	PlayerID   int    `json:"player_id"`
+	GameID     int    `json:"game_id"`
 	PlayerName string `json:"player_name" validate:"required"`
 	GameWeek   int    `json:"game_week" validate:"required"`
 	GameSeason int    `json:"game_season" validate:"required"`
@@ -129,6 +134,17 @@ type PlayerStatsUpdateRequest struct {
 	PassBreakups  *int `json:"pass_breakups,omitempty"`
 	DefTD         *int `json:"def_td,omitempty"`
 	Safeties      *int `json:"safeties,omitempty"`
+}
+
+// Counts lists every stat field so handlers can reject negative values.
+func (r *PlayerStatsCreateRequest) Counts() []*int {
+	return []*int{r.PassingTDs, r.PassesCompleted, r.PassesAttempted, r.InterceptionsThrown, r.Receptions, r.Targets, r.ReceivingTDs,
+		r.Drops, r.FirstDowns, r.RushingTDs, r.RushAttempts, r.FlagPulls, r.Sacks, r.Interceptions, r.PassBreakups, r.DefTD, r.Safeties}
+}
+
+func (r *PlayerStatsUpdateRequest) Counts() []*int {
+	return []*int{r.PassingTDs, r.PassesCompleted, r.PassesAttempted, r.InterceptionsThrown, r.Receptions, r.Targets, r.ReceivingTDs,
+		r.Drops, r.FirstDowns, r.RushingTDs, r.RushAttempts, r.FlagPulls, r.Sacks, r.Interceptions, r.PassBreakups, r.DefTD, r.Safeties}
 }
 
 // Special requests
