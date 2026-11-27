@@ -60,6 +60,7 @@ func (h *Handlers) SetupRoutes(app fiber.Router) {
 	app.Get("/people", h.GetPeople)
 	app.Put("/people/:id", middleware.AdminRequired(), h.UpdatePerson)
 	app.Post("/people/:id/avatar", middleware.AdminRequired(), h.UploadAvatar)
+	app.Delete("/people/:id/avatar", middleware.AdminRequired(), h.DeleteAvatar)
 	app.Get("/games/:id/social", h.GetGameSocial)
 	app.Post("/games/:id/react", SocialLimiter(), h.ToggleReaction)
 	app.Post("/games/:id/mvp", SocialLimiter(), h.VoteMVP)

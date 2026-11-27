@@ -143,6 +143,9 @@ export const api = {
     body.append('file', file);
     return json(await fetch(`${API_BASE_URL}/people/${id}/avatar`, { method: 'POST', body }), 'upload photo');
   },
+  async deleteAvatar(id: number): Promise<{ removed: boolean }> {
+    return json(await fetch(`${API_BASE_URL}/people/${id}/avatar`, { method: 'DELETE' }), 'remove photo');
+  },
   // Stat entry: absolute values. Create by ids (409 if the row already exists), edit with optimistic version.
   async createStatsById(body: { player_id: number; game_id: number } & Partial<Record<string, number>>) {
     return json<{ data: PlayerStats }>(await fetch(`${API_BASE_URL}/stats`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(body) }), 'save stats');

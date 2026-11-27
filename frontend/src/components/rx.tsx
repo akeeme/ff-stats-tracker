@@ -85,7 +85,13 @@ export function PhotoUpload({ personId, hasPhoto }: { personId: number; hasPhoto
     onSuccess: () => { setMsg('Photo saved'); return qc.invalidateQueries({ queryKey: ['people'] }) },
     onError: (e: Error) => setMsg(e.message),
   })
+  const rm = useMutation({
+    mutationFn: () => api.deleteAvatar(personId),
+    onSuccess: () => { setMsg('Photo removed'); return qc.invalidateQueries({ queryKey: ['people'] }) },
+    onError: (e: Error) => setMsg(e.message),
+  })
   if (!isAdmin) return null
+  const busy = up.isPending || rm.isPending
   const pick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     e.target.value = ''
@@ -95,11 +101,14 @@ export function PhotoUpload({ personId, hasPhoto }: { personId: number; hasPhoto
   }
   return (
     <div className="rx-upload">
-      <label className="rx-btn ghost" aria-disabled={up.isPending}>
+      <label className="rx-btn ghost" aria-disabled={busy}>
         {up.isPending ? 'Uploading…' : hasPhoto ? '📷 Replace photo' : '📷 Upload photo'}
-        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={pick} disabled={up.isPending} className="rx-sr" />
+        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={pick} disabled={busy} className="rx-sr" />
       </label>
-      <span role="status" className={up.isError || (msg && msg !== 'Photo saved') ? 'rx-err' : 'rx-muted'}>{msg}</span>
+      {hasPhoto && <button type="button" className="rx-btn ghost" disabled={busy}
+        onClick={() => { if (confirm('Remove this photo? Initials will show instead.')) { setMsg(''); rm.mutate() } }}>
+        {rm.isPending ? 'Removing…' : 'Remove photo'}</button>}
+      <span role="status" className={msg && msg !== 'Photo saved' && msg !== 'Photo removed' ? 'rx-err' : 'rx-muted'}>{msg}</span>
     </div>
   )
 }
