@@ -217,8 +217,7 @@ export const api = {
       headers: getHeaders(),
       body: JSON.stringify(team),
     });
-    if (!response.ok) throw new Error('Failed to create team');
-    return response.json();
+    return json(response, 'add team'); // passes the server's message through (duplicate name, team has games…)
   },
 
   async updateTeam(id: number, team: Partial<Team>, version: number) {
@@ -227,8 +226,7 @@ export const api = {
       headers: getHeaders(),
       body: JSON.stringify(team),
     });
-    if (!response.ok) throw new Error('Failed to update team');
-    return response.json();
+    return json(response, 'update team'); // passes the server's message through (duplicate name, team has games…)
   },
 
   async deleteTeam(id: number, version: number) {
@@ -236,8 +234,7 @@ export const api = {
       method: 'DELETE',
       headers: getHeaders(),
     });
-    if (!response.ok) throw new Error('Failed to delete team');
-    return response.json();
+    return json(response, 'delete team'); // passes the server's message through (duplicate name, team has games…)
   },
 
   // Players
@@ -422,13 +419,10 @@ export const api = {
     return response.json();
   },
 
-  async copyTeamsToSeason(fromSeason: number, toSeason: number) {
-    const response = await fetch(`${API_BASE_URL}/teams/copy-to-season`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ from_season: fromSeason, to_season: toSeason }),
-    });
-    if (!response.ok) throw new Error('Failed to copy teams to season');
-    return response.json();
+  async getSeasons(): Promise<{ season: number; league: string }[]> {
+    return json(await fetch(`${API_BASE_URL}/seasons`, { cache: 'no-store' }), 'fetch seasons');
+  },
+  async startSeason(body: { season: number; league: string; carry_team_ids: number[]; new_teams: string[] }): Promise<{ teams: string[] }> {
+    return json(await fetch(`${API_BASE_URL}/seasons/start`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(body) }), 'start season');
   },
 };

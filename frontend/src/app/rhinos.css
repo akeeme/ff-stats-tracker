@@ -192,6 +192,13 @@ a.rx-card{display:block;color:inherit;text-decoration:none}
 .rx-save{margin-right:auto;font-size:13px;font-weight:700;color:var(--rx-mut);min-width:0;overflow:hidden;text-overflow:ellipsis}
 .rx-save.dirty{color:var(--rx-gold)}.rx-save.saved{color:var(--rx-win)}.rx-save.error{color:var(--rx-loss);white-space:normal}
 /* admin forms + lists */
+.rx-check{border:1px solid var(--rx-line);border-radius:12px;padding:6px 12px 8px;margin:0;display:grid}
+.rx-check legend{font-size:12px;font-weight:700;color:var(--rx-mut);text-transform:uppercase;letter-spacing:.4px;padding:0 4px}
+.rx-form .rx-check label{display:flex;align-items:center;gap:10px;min-height:44px;font-size:15px;font-weight:700;color:var(--rx-txt);text-transform:none;letter-spacing:0;border-top:1px solid var(--rx-line)}
+.rx-form .rx-check label:first-of-type{border-top:0}
+.rx-check input{width:20px;height:20px;accent-color:var(--rx-acc)}
+.rx-check small{margin-left:auto;color:var(--rx-mut);font-weight:600;font-size:12px}
+.rx-chipx{font:inherit;background:none;border:0;color:var(--rx-mut);cursor:pointer;min-width:24px;min-height:24px}
 .rx-form{display:grid;gap:10px;padding:14px}
 .rx-form label{font-size:12px;font-weight:700;color:var(--rx-mut);text-transform:uppercase;letter-spacing:.4px}
 .rx-form .rx-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}

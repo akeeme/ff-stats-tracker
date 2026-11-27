@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"ff-stats-tracker/internal/models"
@@ -20,6 +21,11 @@ func (h *Handlers) CreateTeam(c *fiber.Ctx) error {
 				Message: "Invalid request body",
 			},
 		})
+	}
+
+	req.Name, req.League = strings.TrimSpace(req.Name), strings.TrimSpace(req.League)
+	if req.Name == "" || req.League == "" || req.Season <= 0 {
+		return fail(c, fiber.NewError(400, "Name, league and season are required"))
 	}
 
 	// Set defaults
@@ -70,6 +76,9 @@ func (h *Handlers) CreateTeam(c *fiber.Ctx) error {
 		team.IsActive, team.Version, team.IsDeleted, team.CreatedAt, team.UpdatedAt,
 	).Scan(&id)
 
+	if isUnique(err) {
+		return fail(c, fiber.NewError(409, fmt.Sprintf("There's already a team called %s in Season %d", req.Name, req.Season)))
+	}
 	if err != nil {
 		return c.Status(500).JSON(models.TeamResponse{
 			BaseResponse: models.BaseResponse{
@@ -224,9 +233,10 @@ func (h *Handlers) UpdateTeam(c *fiber.Ctx) error {
 	}
 
 	// Check if team exists and get current version
-	var currentVersion int
-	checkQuery := "SELECT version FROM statstracker.teams WHERE id = $1 AND is_deleted = false"
-	err = h.db.QueryRow(context.Background(), checkQuery, id).Scan(&currentVersion)
+	var currentVersion, currentSeason int
+	var currentName string
+	checkQuery := "SELECT version, name, season FROM statstracker.teams WHERE id = $1 AND is_deleted = false"
+	err = h.db.QueryRow(context.Background(), checkQuery, id).Scan(&currentVersion, &currentName, &currentSeason)
 	if err != nil {
 		return c.Status(404).JSON(models.TeamResponse{
 			BaseResponse: models.BaseResponse{
@@ -244,6 +254,17 @@ func (h *Handlers) UpdateTeam(c *fiber.Ctx) error {
 				Message: "Record has been modified. Please refresh and try again.",
 			},
 		})
+	}
+
+	if req.Name != nil {
+		n := strings.TrimSpace(*req.Name)
+		req.Name = &n
+		if msg := renameProblem(currentName, n); msg != "" {
+			return fail(c, fiber.NewError(400, msg))
+		}
+	}
+	if req.League != nil && strings.TrimSpace(*req.League) == "" {
+		return fail(c, fiber.NewError(400, "League is required"))
 	}
 
 	// Build update query dynamically
@@ -316,6 +337,9 @@ func (h *Handlers) UpdateTeam(c *fiber.Ctx) error {
 		&team.IsActive, &team.RecordManual, &team.Version, &team.IsDeleted, &team.CreatedAt, &team.UpdatedAt, &team.DeletedAt,
 	)
 
+	if isUnique(err) {
+		return fail(c, fiber.NewError(409, fmt.Sprintf("There's already a team with that name in Season %d", currentSeason)))
+	}
 	if err != nil {
 		return c.Status(500).JSON(models.TeamResponse{
 			BaseResponse: models.BaseResponse{
@@ -380,10 +404,22 @@ func (h *Handlers) DeleteTeam(c *fiber.Ctx) error {
 		})
 	}
 
+	var name string
+	var games, roster int
+	if err := h.db.QueryRow(c.Context(), `SELECT name,
+		(SELECT count(*) FROM statstracker.games g WHERE NOT g.is_deleted AND $1 IN (g.team1_id, g.team2_id, g.winning_team_id))::int,
+		(SELECT count(*) FROM statstracker.players p WHERE NOT p.is_deleted AND p.team_id = $1)::int
+		FROM statstracker.teams WHERE id = $1`, id).Scan(&name, &games, &roster); err != nil {
+		return fail(c, err)
+	}
+	if msg := deleteProblem(name, games, roster); msg != "" {
+		return fail(c, fiber.NewError(409, msg))
+	}
+
 	// Soft delete
 	now := time.Now()
 	updateQuery := `
-		UPDATE teams 
+		UPDATE statstracker.teams 
 		SET is_deleted = true, deleted_at = $1, version = version + 1, updated_at = $1
 		WHERE id = $2 AND is_deleted = false
 	`
@@ -404,4 +440,33 @@ func (h *Handlers) DeleteTeam(c *fiber.Ctx) error {
 			Message: "Team deleted successfully",
 		},
 	})
+}
+
+// renameProblem: the Rhinos row can't be renamed and nothing else can become "Rhinos" (the app finds us by name).
+func renameProblem(current, next string) string {
+	switch {
+	case next == "":
+		return "Name is required"
+	case current == TeamName && next != TeamName:
+		return "The Rhinos team can't be renamed: the app finds Rhinos games by this name"
+	case current != TeamName && strings.EqualFold(next, TeamName):
+		return "Only the Rhinos team can be called Rhinos"
+	}
+	return ""
+}
+
+func deleteProblem(name string, games, roster int) string {
+	plural := func(n int, one string) string {
+		if n == 1 {
+			return "1 " + one
+		}
+		return fmt.Sprintf("%d %ss", n, one)
+	}
+	switch {
+	case games > 0:
+		return fmt.Sprintf("Can't delete %s: it's in %s. Delete those games or change their opponent first.", name, plural(games, "game"))
+	case roster > 0:
+		return fmt.Sprintf("Can't delete %s: %s on its roster. Remove them on the Players page first.", name, plural(roster, "player"))
+	}
+	return ""
 }

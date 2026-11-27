@@ -87,6 +87,14 @@ CREATE TABLE IF NOT EXISTS statstracker.mvp_votes (
     PRIMARY KEY (game_id, device_id)
 );
 
+-- seasons started from /admin/seasons. Older seasons exist only through teams/games; this row lets a
+-- season start with no teams and still keep its league.
+CREATE TABLE IF NOT EXISTS statstracker.seasons (
+    season INTEGER PRIMARY KEY CHECK (season > 0),
+    league VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
 -- reaction catalog (edited at /admin/reactions). Seeded only into an empty table, so removals stick.
 CREATE TABLE IF NOT EXISTS statstracker.reactions (
     code VARCHAR(32) PRIMARY KEY CHECK (code ~ '^[a-z0-9_]{1,32}$'),
