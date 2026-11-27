@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useRhinos } from '@/hooks/use-rhinos'
 import { Loading, PerfCarousel, ResultBadge, Social, TopBar } from '@/components/rx'
+import { Reactions } from '@/components/reactions'
 import { gameLabel, pct, side, statsForGame, topPerformances, type Row, type StatKey } from '@/lib/derive'
 
 type Col = { key: StatKey | 'cmp'; label: string }
@@ -40,6 +41,7 @@ export default function GamePage() {
           <span className="rx-pts">{s.us} <span className="rx-dim">–</span> {s.them}</span>
           <span className="rx-team">{s.opp}</span>
         </div>
+        <div className="rx-foot rx-bar"><Reactions target={`game:${g.id}`} label={`Rhinos vs ${s.opp}`} /></div>
       </div>
 
       {rows.length === 0 ? (

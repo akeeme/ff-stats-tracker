@@ -99,3 +99,39 @@ func TestKeyFromURL(t *testing.T) {
 		t.Fatal("KeyFromURL")
 	}
 }
+
+func TestProcessIconPadsWideImageOnTransparentSquare(t *testing.T) {
+	var in bytes.Buffer
+	if err := png.Encode(&in, halves(400, 200)); err != nil {
+		t.Fatal(err)
+	}
+	out, err := ProcessIcon(in.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	img, err := png.Decode(bytes.NewReader(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b := img.Bounds(); b.Dx() != IconSize || b.Dy() != IconSize {
+		t.Fatalf("size %v", b)
+	}
+	if _, _, _, a := img.At(64, 5).RGBA(); a != 0 { // 400x200 -> 128x64 band in the middle; top is padding
+		t.Fatalf("top padding not transparent: alpha %d", a)
+	}
+	if !isRed(img.At(10, 64)) || !isBlue(img.At(118, 64)) {
+		t.Fatal("content not scaled into the middle band")
+	}
+	if len(out) > IconMaxBytes {
+		t.Fatalf("output %d bytes", len(out))
+	}
+}
+
+func TestProcessIconRejectsBigAndNonImage(t *testing.T) {
+	if _, err := ProcessIcon(make([]byte, IconMaxBytes+1)); err == nil {
+		t.Fatal("accepted > 500 KB")
+	}
+	if _, err := ProcessIcon([]byte("<svg xmlns='http://www.w3.org/2000/svg'/>")); err != ErrUnsupported {
+		t.Fatalf("svg: %v", err)
+	}
+}

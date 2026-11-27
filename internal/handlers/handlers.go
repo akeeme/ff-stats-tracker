@@ -62,8 +62,16 @@ func (h *Handlers) SetupRoutes(app fiber.Router) {
 	app.Post("/people/:id/avatar", middleware.AdminRequired(), h.UploadAvatar)
 	app.Delete("/people/:id/avatar", middleware.AdminRequired(), h.DeleteAvatar)
 	app.Get("/games/:id/social", h.GetGameSocial)
-	app.Post("/games/:id/react", SocialLimiter(), h.ToggleReaction)
 	app.Post("/games/:id/mvp", SocialLimiter(), h.VoteMVP)
+
+	// Reactions on any card (catalog is admin-editable data)
+	app.Get("/reactions", h.GetReactionTypes)
+	app.Get("/reactions/counts", h.GetReactionCounts)
+	app.Post("/reactions/toggle", SocialLimiter(), h.ToggleTargetReaction)
+	app.Post("/reactions", middleware.AdminRequired(), h.CreateReactionType)
+	app.Put("/reactions/order", middleware.AdminRequired(), h.ReorderReactionTypes)
+	app.Put("/reactions/:code", middleware.AdminRequired(), h.UpdateReactionType)
+	app.Delete("/reactions/:code", middleware.AdminRequired(), h.DeleteReactionType)
 }
 
 // EndSeason marks all teams from a specific season as inactive

@@ -21,9 +21,24 @@ export interface PersonExtra {
   avatar_url?: string | null;
 }
 
-export interface GameSocial {
-  reactions: Record<string, number>;
+export interface ReactionType {
+  code: string;
+  label: string;
+  kind: 'unicode' | 'image';
+  value: string; // the emoji, or the image URL
+  category: string;
+  sort_order: number;
+  active: boolean;
+  uses?: number; // admin list only
+}
+
+/** Counts for one card, keyed "game:27" / "stat:101" / "person:25". */
+export interface TargetCounts {
+  counts: Record<string, number>;
   mine: string[];
+}
+
+export interface GameSocial {
   mvp: { person_id: number; votes: number }[];
   my_vote: number | null;
 }
@@ -156,8 +171,28 @@ export const api = {
   async getGameSocial(gameId: number): Promise<GameSocial> {
     return json(await fetch(`${API_BASE_URL}/games/${gameId}/social`, { cache: 'no-store' }), 'fetch reactions');
   },
-  async react(gameId: number, emoji: string) {
-    return json(await fetch(`${API_BASE_URL}/games/${gameId}/react`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ emoji }) }), 'react');
+  // Reactions on any card. Catalog is admin-editable (/admin/reactions).
+  async getReactionTypes(all = false): Promise<ReactionType[]> {
+    return json(await fetch(`${API_BASE_URL}/reactions${all ? '?all=1' : ''}`, { cache: 'no-store' }), 'fetch reactions');
+  },
+  async getReactionCounts(targets: string[]): Promise<Record<string, TargetCounts>> {
+    return json(await fetch(`${API_BASE_URL}/reactions/counts?t=${encodeURIComponent(targets.join(','))}`, { cache: 'no-store' }), 'fetch reactions');
+  },
+  async toggleReaction(target: string, code: string): Promise<{ on: boolean }> {
+    const [target_type, id] = target.split(':');
+    return json(await fetch(`${API_BASE_URL}/reactions/toggle`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ target_type, target_id: Number(id), code }) }), 'react');
+  },
+  async createReactionType(body: FormData) {
+    return json(await fetch(`${API_BASE_URL}/reactions`, { method: 'POST', body }), 'add reaction');
+  },
+  async updateReactionType(code: string, body: { label?: string; category?: string; active?: boolean }) {
+    return json(await fetch(`${API_BASE_URL}/reactions/${encodeURIComponent(code)}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(body) }), 'update reaction');
+  },
+  async reorderReactionTypes(codes: string[]) {
+    return json(await fetch(`${API_BASE_URL}/reactions/order`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify({ codes }) }), 'reorder reactions');
+  },
+  async deleteReactionType(code: string): Promise<{ deleted: boolean; hidden?: boolean; uses?: number }> {
+    return json(await fetch(`${API_BASE_URL}/reactions/${encodeURIComponent(code)}`, { method: 'DELETE' }), 'remove reaction');
   },
   async voteMvp(gameId: number, personId: number, voterName?: string) {
     return json(await fetch(`${API_BASE_URL}/games/${gameId}/mvp`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ person_id: personId, voter_name: voterName || '' }) }), 'vote');

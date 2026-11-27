@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation'
 import { useState } from 'react'
 import { useRhinos } from '@/hooks/use-rhinos'
 import { Avatar, Loading, PhotoUpload, SeasonChips, TopBar } from '@/components/rx'
+import { Reactions, Tags } from '@/components/reactions'
+import { hashtags, profileHashtags } from '@/lib/hashtags'
 import { addLine, careerRank, emptyLine, gameLabel, pct, side, statLine, totalTD, type Row, type StatKey } from '@/lib/derive'
 
 const SIG: [StatKey, string][] = [['passing_tds', 'Pass TD'], ['receiving_tds', 'Rec TD'], ['rushing_tds', 'Rush TD'],
@@ -33,6 +35,7 @@ export default function PlayerPage() {
   const pos = [career.passes_attempted > 40 && 'QB', career.targets > 20 && 'WR', career.interceptions + career.pass_breakups > 5 && 'DB'].filter(Boolean).join(' · ')
 
   const myGames = new Map(mine.map(r => [r.game_id, r]))
+  const tags = profileHashtags(mine.filter(inView))
   const log = d.games.filter(g => seasons.includes(g.season) && (view === 'career' || g.season === view))
   const res = log.filter(g => myGames.has(g.id)).reduce((a, g) => (a[side(g).res]++, a), { W: 0, L: 0, T: 0 })
   const champs = d.games.filter(g => g.game_type === 'championship' && side(g).res === 'W' && seasons.includes(g.season)).map(g => g.season)
@@ -61,6 +64,8 @@ export default function PlayerPage() {
         </div>
         <PhotoUpload personId={person.id} hasPhoto={!!person.avatar_url} />
         {person.bio && <p className="rx-sub" style={{ marginTop: 10 }}>{person.bio}</p>}
+        {tags.length > 0 && <div className="rx-tags lg" aria-label="Most earned hashtags">{tags.map(t => <span key={t.tag}>#{t.tag}{t.n > 1 && <small> ×{t.n}</small>}</span>)}</div>}
+        <div className="rx-bar"><Reactions target={`person:${person.id}`} label={person.name} /></div>
         {sig && <div className="rx-sig"><b>{sig.v}</b><div>Signature stat<strong>{sig.label}, career</strong></div><span className="rx-rk">#{sig.r} all-time</span></div>}
       </section>
       {badges.length > 0 && <div className="rx-pills">{badges.map(b => <span key={b} className="rx-pill">{b}</span>)}</div>}
@@ -109,12 +114,15 @@ export default function PlayerPage() {
           const s = side(g), r = myGames.get(g.id)
           const [a, b] = r ? statLine(r) : ['', '']
           return (
-            <Link key={g.id} href={`/games/${g.id}`} className="rx-row">
-              <span className={`rx-wl ${s.res}`}>{s.res}</span>
-              <span className="rx-grow"><b>vs {s.opp}</b><small>S{g.season} · {gameLabel(g)} · {s.us}-{s.them}</small></span>
-              {r ? <span className="rx-num" style={{ fontSize: 13, maxWidth: '52%' }}>{a}<small>{b}</small></span>
-                : <span className="rx-nofilm">{d.gamesWithStats.has(g.id) ? 'Did not play' : 'No film'}</span>}
-            </Link>
+            <div key={g.id} className="rx-logrow">
+              <Link href={`/games/${g.id}`} className="rx-row">
+                <span className={`rx-wl ${s.res}`}>{s.res}</span>
+                <span className="rx-grow"><b>vs {s.opp}</b><small>S{g.season} · {gameLabel(g)} · {s.us}-{s.them}</small></span>
+                {r ? <span className="rx-num" style={{ fontSize: 13, maxWidth: '52%' }}>{a}<small>{b}</small></span>
+                  : <span className="rx-nofilm">{d.gamesWithStats.has(g.id) ? 'Did not play' : 'No film'}</span>}
+              </Link>
+              {r && <div className="rx-bar"><Reactions target={`stat:${r.id}`} label={`${person.name} vs ${s.opp}`} /><Tags tags={hashtags(r)} /></div>}
+            </div>
           )
         })}
       </div>

@@ -86,6 +86,44 @@ CREATE TABLE IF NOT EXISTS statstracker.mvp_votes (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     PRIMARY KEY (game_id, device_id)
 );
+
+-- reaction catalog (edited at /admin/reactions). Seeded only into an empty table, so removals stick.
+CREATE TABLE IF NOT EXISTS statstracker.reactions (
+    code VARCHAR(32) PRIMARY KEY CHECK (code ~ '^[a-z0-9_]{1,32}$'),
+    label VARCHAR(60) NOT NULL,
+    kind VARCHAR(10) NOT NULL CHECK (kind IN ('unicode', 'image')),
+    value TEXT NOT NULL,
+    category VARCHAR(30) NOT NULL DEFAULT 'general',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+INSERT INTO statstracker.reactions (code, label, kind, value, sort_order, active)
+SELECT * FROM (VALUES ('fire', 'Fire', 'unicode', '🔥', 10, TRUE), ('flex', 'Flex', 'unicode', '💪', 20, TRUE),
+    ('rhino', 'Rhino', 'unicode', '🦏', 30, TRUE), ('goat', 'GOAT', 'unicode', '🐐', 40, TRUE),
+    -- the old game-only set also allowed these two; kept (hidden) so migrated reactions keep a home
+    ('laugh', 'Laugh', 'unicode', '😂', 50, FALSE), ('clap', 'Clap', 'unicode', '👏', 60, FALSE)) v
+WHERE NOT EXISTS (SELECT 1 FROM statstracker.reactions);
+
+-- reactions on any card: game score card, a stat line (perf card / game-log row), a person (profile header)
+CREATE TABLE IF NOT EXISTS statstracker.target_reactions (
+    target_type VARCHAR(10) NOT NULL CHECK (target_type IN ('game', 'stat', 'person')),
+    target_id INTEGER NOT NULL,
+    device_id UUID NOT NULL,
+    code VARCHAR(32) NOT NULL REFERENCES statstracker.reactions(code) ON UPDATE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    PRIMARY KEY (target_type, target_id, device_id, code)
+);
+CREATE INDEX IF NOT EXISTS idx_target_reactions_code ON statstracker.target_reactions(code);
+
+-- one-time move of the old game-only rows: each row is deleted as it is copied, so a restart moves
+-- nothing twice and an un-react is never undone. Rows with an unknown emoji stay where they are.
+WITH moved AS (
+    DELETE FROM statstracker.game_reactions g USING statstracker.reactions r WHERE r.kind = 'unicode' AND r.value = g.emoji
+    RETURNING g.game_id, g.device_id, r.code, g.created_at
+)
+INSERT INTO statstracker.target_reactions (target_type, target_id, device_id, code, created_at)
+SELECT 'game', game_id, device_id, code, created_at FROM moved ON CONFLICT DO NOTHING;
 `
 
 const createTeamsTable = `
