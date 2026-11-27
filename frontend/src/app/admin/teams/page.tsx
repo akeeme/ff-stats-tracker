@@ -10,10 +10,11 @@ import { fmtRecord, standings } from '@/lib/derive'
 export default function TeamsAdmin() {
   const teams = useQuery({ queryKey: ['teams'], queryFn: api.getTeams })
   const games = useQuery({ queryKey: ['games'], queryFn: api.getGames })
+  const started = useQuery({ queryKey: ['seasons'], queryFn: api.getSeasons }) // seasons started with no teams yet
   const [pick, setPick] = useState<number>()
   const [open, setOpen] = useState<number | 'new'>()
   const all = (teams.data ?? []).filter(t => !t.is_deleted)
-  const seasons = [...new Set(all.map(t => t.season))].sort((a, b) => b - a)
+  const seasons = [...new Set([...all.map(t => t.season), ...(started.data ?? []).map(s => s.season)])].sort((a, b) => b - a)
   const season = pick ?? seasons[0]
   const list = all.filter(t => t.season === season).sort((a, b) => a.name.localeCompare(b.name))
   const computed = new Map(standings((games.data ?? []).filter(g => !g.is_deleted), [], season).map(r => [r.name, r]))
@@ -26,7 +27,7 @@ export default function TeamsAdmin() {
           <div>
             {open === 'new' && <>
               <div className="rx-sec">New team · Season {season}</div>
-              <TeamForm season={season} league={list[0]?.league ?? ''} onDone={() => setOpen(undefined)} />
+              <TeamForm season={season} league={started.data?.find(s => s.season === season)?.league ?? list[0]?.league ?? ''} onDone={() => setOpen(undefined)} />
             </>}
             <div className="rx-sec">Season {season}<small>record from games · ✎ = manual</small></div>
             <div className="rx-card">
@@ -47,7 +48,7 @@ export default function TeamsAdmin() {
                   </div>
                 )
               })}
-              {!list.length && <p className="rx-pad rx-muted">No teams this season.</p>}
+              {!list.length && <p className="rx-pad rx-muted">No teams this season. Use + Team to add them.</p>}
             </div>
           </div>
         </div>

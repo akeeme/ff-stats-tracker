@@ -152,7 +152,3 @@ type EndSeasonRequest struct {
 	Season int `json:"season" validate:"required"`
 }
 
-type CopyTeamsRequest struct {
-	FromSeason int `json:"from_season" validate:"required"`
-	ToSeason   int `json:"to_season" validate:"required"`
-}

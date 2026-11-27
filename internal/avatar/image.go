@@ -33,6 +33,28 @@ func Process(data []byte) ([]byte, error) {
 	if len(data) > MaxUploadBytes {
 		return nil, errors.New("image is larger than 5 MB")
 	}
+	src, err := decode(data)
+	if err != nil {
+		return nil, err
+	}
+
+	b := src.Bounds()
+	side := min(b.Dx(), b.Dy())
+	crop := image.Rect(0, 0, side, side).Add(image.Pt(b.Min.X+(b.Dx()-side)/2, b.Min.Y+(b.Dy()-side)/2))
+	dst := image.NewRGBA(image.Rect(0, 0, Size, Size))
+	draw.Draw(dst, dst.Bounds(), image.NewUniform(color.RGBA{0x14, 0x17, 0x1c, 0xff}), image.Point{}, draw.Src) // transparent PNGs land on the app's dark bg
+	xdraw.CatmullRom.Scale(dst, dst.Bounds(), src, crop, xdraw.Over, nil)
+
+	out := orient(dst, jpegOrientation(data))
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, out, &jpeg.Options{Quality: 85}); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// decode sniffs the type from the bytes, rejects decompression bombs, then decodes.
+func decode(data []byte) (image.Image, error) {
 	var decode func([]byte) (image.Image, error)
 	var config func([]byte) (image.Config, error)
 	switch http.DetectContentType(data) {
@@ -59,17 +81,36 @@ func Process(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.New("could not read image")
 	}
+	return src, nil
+}
 
+const (
+	IconMaxBytes = 500 << 10
+	IconSize     = 128
+)
+
+// ProcessIcon makes a custom reaction: fit inside IconSize x IconSize (no crop), centered on a
+// transparent square, PNG.
+func ProcessIcon(data []byte) ([]byte, error) {
+	if len(data) > IconMaxBytes {
+		return nil, errors.New("image is larger than 500 KB")
+	}
+	src, err := decode(data)
+	if err != nil {
+		return nil, err
+	}
 	b := src.Bounds()
-	side := min(b.Dx(), b.Dy())
-	crop := image.Rect(0, 0, side, side).Add(image.Pt(b.Min.X+(b.Dx()-side)/2, b.Min.Y+(b.Dy()-side)/2))
-	dst := image.NewRGBA(image.Rect(0, 0, Size, Size))
-	draw.Draw(dst, dst.Bounds(), image.NewUniform(color.RGBA{0x14, 0x17, 0x1c, 0xff}), image.Point{}, draw.Src) // transparent PNGs land on the app's dark bg
-	xdraw.CatmullRom.Scale(dst, dst.Bounds(), src, crop, xdraw.Over, nil)
-
-	out := orient(dst, jpegOrientation(data))
+	w, h := IconSize, IconSize
+	if b.Dx() > b.Dy() {
+		h = max(1, IconSize*b.Dy()/b.Dx())
+	} else {
+		w = max(1, IconSize*b.Dx()/b.Dy())
+	}
+	dst := image.NewNRGBA(image.Rect(0, 0, IconSize, IconSize)) // zero value = fully transparent
+	at := image.Rect(0, 0, w, h).Add(image.Pt((IconSize-w)/2, (IconSize-h)/2))
+	xdraw.CatmullRom.Scale(dst, at, src, b, xdraw.Over, nil)
 	var buf bytes.Buffer
-	if err := jpeg.Encode(&buf, out, &jpeg.Options{Quality: 85}); err != nil {
+	if err := (&png.Encoder{CompressionLevel: png.BestCompression}).Encode(&buf, dst); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil

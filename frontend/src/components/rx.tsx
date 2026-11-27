@@ -8,6 +8,8 @@ import { api, type Game } from '@/lib/api'
 import { useAdmin } from '@/providers/admin-provider'
 import { gameLabel, impact, initials, side, statLine, type Person, type Row } from '@/lib/derive'
 import type { Rhinos } from '@/hooks/use-rhinos'
+import { hashtags } from '@/lib/hashtags'
+import { Reactions, Tags } from '@/components/reactions'
 
 const icons = {
   home: <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3 3 10v11h6v-6h6v6h6V10z" /></svg>,
@@ -130,17 +132,22 @@ export function ResultBadge({ g }: { g: Game }) {
 export function ScoreCard({ g, hasStats, foot }: { g: Game; hasStats: boolean; foot?: ReactNode }) {
   const s = side(g)
   return (
-    <Link href={`/games/${g.id}`} className="rx-card rx-score">
-      <div className="rx-meta"><span>Season {g.season} · {gameLabel(g)} · {g.league}</span><ResultBadge g={g} /></div>
-      <div className="rx-teams">
-        <span className="rx-team">Rhinos</span>
-        <span className="rx-pts" aria-label={`Rhinos ${s.us}, ${s.opp} ${s.them}`}>
-          <span className={s.res === 'L' ? 'rx-dim' : ''}>{s.us}</span> <span className="rx-dim">–</span> <span className={s.res === 'W' ? 'rx-dim' : ''}>{s.them}</span>
-        </span>
-        <span className="rx-team">{s.opp}</span>
+    <div className="rx-card rx-score">
+      <Link href={`/games/${g.id}`} className="rx-cover">
+        <div className="rx-meta"><span>Season {g.season} · {gameLabel(g)} · {g.league}</span><ResultBadge g={g} /></div>
+        <div className="rx-teams">
+          <span className="rx-team">Rhinos</span>
+          <span className="rx-pts" aria-label={`Rhinos ${s.us}, ${s.opp} ${s.them}`}>
+            <span className={s.res === 'L' ? 'rx-dim' : ''}>{s.us}</span> <span className="rx-dim">–</span> <span className={s.res === 'W' ? 'rx-dim' : ''}>{s.them}</span>
+          </span>
+          <span className="rx-team">{s.opp}</span>
+        </div>
+      </Link>
+      <div className="rx-foot rx-bar">
+        <Reactions target={`game:${g.id}`} label={`Rhinos vs ${s.opp}`} />
+        <Link href={`/games/${g.id}`} className="rx-grow">{hasStats ? foot : <span className="rx-nofilm">No stats recorded (no film)</span>}</Link>
       </div>
-      <div className="rx-foot">{hasStats ? foot : <span className="rx-nofilm">No stats recorded (no film)</span>}</div>
-    </Link>
+    </div>
   )
 }
 
@@ -150,41 +157,36 @@ export function PerfCarousel({ rows, d, label }: { rows: Row[]; d: Rhinos; label
       {rows.map((r, i) => {
         const p = d.people.get(r.personId)
         const [a, b] = statLine(r)
+        const name = p?.name ?? r.player_name
         return (
-          <Link role="listitem" key={r.id} href={`/players/${r.personId}`} className="rx-perf">
-            <div className="rx-rank">{label ? label(i) : `#${i + 1} performance`} · {Math.round(impact(r))} pts</div>
-            <div className="rx-who"><Avatar person={p} size={40} /><b>{p?.name ?? r.player_name}</b></div>
-            <div className="rx-line">{a}<small>{b || ' '}</small></div>
-          </Link>
+          <div role="listitem" key={r.id} className="rx-perf">
+            <Link href={`/players/${r.personId}`} className="rx-cover">
+              <div className="rx-rank">{label ? label(i) : `#${i + 1} performance`} · {Math.round(impact(r))} pts</div>
+              <div className="rx-who"><Avatar person={p} size={40} /><b>{name}</b></div>
+              <div className="rx-line">{a}<small>{b || ' '}</small></div>
+              <Tags tags={hashtags(r)} />
+            </Link>
+            <div className="rx-bar"><Reactions target={`stat:${r.id}`} label={`${name}'s game`} /></div>
+          </div>
         )
       })}
     </div>
   )
 }
 
-const EMOJI = ['🔥', '💪', '🦏', '🐐', '😂', '👏']
-
-/** Reactions + MVP poll. Anonymous: the API keys both to a per-device httpOnly cookie and rate-limits by IP. */
+/** MVP poll. Anonymous: the API keys votes to a per-device httpOnly cookie and rate-limits by IP. */
 export function Social({ g, d, candidates }: { g: Game; d: Rhinos; candidates: number[] }) {
   const qc = useQueryClient()
   const key = ['social', g.id]
   const q = useQuery({ queryKey: key, queryFn: () => api.getGameSocial(g.id), staleTime: 15_000 })
   const [voter, setVoter] = useState('')
   useEffect(() => { setVoter(localStorage.getItem('rx_voter') || '') }, [])
-  const react = useMutation({ mutationFn: (e: string) => api.react(g.id, e), onSettled: () => qc.invalidateQueries({ queryKey: key }) })
   const vote = useMutation({ mutationFn: (pid: number) => api.voteMvp(g.id, pid, voter), onSettled: () => qc.invalidateQueries({ queryKey: key }) })
   const s = q.data
   const total = s?.mvp.reduce((a, x) => a + x.votes, 0) ?? 0
-  const err = (react.error || vote.error) as Error | null
+  const err = vote.error as Error | null
   return (
     <>
-      <div className="rx-sec">Reactions</div>
-      <div className="rx-card"><div className="rx-reacts">
-        {EMOJI.map(e => {
-          const on = s?.mine.includes(e) ?? false
-          return <button key={e} className="rx-react" aria-pressed={on} disabled={react.isPending} onClick={() => react.mutate(e)} aria-label={`React ${e}`}>{e} {s?.reactions[e] ?? 0}</button>
-        })}
-      </div></div>
       {candidates.length > 0 && <>
         <div className="rx-sec">Game MVP<small>{total} vote{total === 1 ? '' : 's'}</small></div>
         <div className="rx-card rx-poll">

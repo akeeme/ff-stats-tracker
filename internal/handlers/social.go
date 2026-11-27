@@ -99,8 +99,6 @@ func validatePerson(nick, bio, avatar *string) string {
 
 const deviceCookie = "rhinos_did"
 
-var allowedEmoji = map[string]bool{"🔥": true, "💪": true, "🦏": true, "🐐": true, "😂": true, "👏": true}
-
 func deviceID(c *fiber.Ctx) string {
 	if id, err := uuid.Parse(c.Cookies(deviceCookie)); err == nil {
 		return id.String()
@@ -148,32 +146,13 @@ func (h *Handlers) GetGameSocial(c *fiber.Ctx) error {
 		return fail(c, err)
 	}
 	dev := deviceID(c)
-	reactions, mine := map[string]int{}, []string{}
-	rows, err := h.db.Query(c.Context(), `SELECT emoji, count(*), bool_or(device_id::text = $2) FROM statstracker.game_reactions WHERE game_id = $1 GROUP BY emoji`, gid, dev)
-	if err != nil {
-		return fail(c, err)
-	}
-	for rows.Next() {
-		var e string
-		var n int
-		var me bool
-		if err := rows.Scan(&e, &n, &me); err != nil {
-			rows.Close()
-			return fail(c, err)
-		}
-		reactions[e] = n
-		if me {
-			mine = append(mine, e)
-		}
-	}
-	rows.Close()
 	type tally struct {
 		PersonID int `json:"person_id"`
 		Votes    int `json:"votes"`
 	}
 	mvp := []tally{}
 	var myVote *int
-	rows, err = h.db.Query(c.Context(), `SELECT person_id, count(*), bool_or(device_id::text = $2) FROM statstracker.mvp_votes WHERE game_id = $1 GROUP BY person_id ORDER BY 2 DESC`, gid, dev)
+	rows, err := h.db.Query(c.Context(), `SELECT person_id, count(*), bool_or(device_id::text = $2) FROM statstracker.mvp_votes WHERE game_id = $1 GROUP BY person_id ORDER BY 2 DESC`, gid, dev)
 	if err != nil {
 		return fail(c, err)
 	}
@@ -190,35 +169,7 @@ func (h *Handlers) GetGameSocial(c *fiber.Ctx) error {
 		}
 		mvp = append(mvp, t)
 	}
-	return c.JSON(fiber.Map{"reactions": reactions, "mine": mine, "mvp": mvp, "my_vote": myVote})
-}
-
-// ToggleReaction: POST /games/:id/react {"emoji":"🔥"}
-func (h *Handlers) ToggleReaction(c *fiber.Ctx) error {
-	gid, _, err := h.gameSeason(c)
-	if err != nil {
-		return fail(c, err)
-	}
-	var b struct {
-		Emoji string `json:"emoji"`
-	}
-	if err := c.BodyParser(&b); err != nil || !allowedEmoji[b.Emoji] {
-		return fail(c, fiber.NewError(400, "Unsupported reaction"))
-	}
-	dev := deviceID(c)
-	if dev == "" {
-		return fail(c, fmt.Errorf("no device id"))
-	}
-	n, err := h.db.Exec(c.Context(), `DELETE FROM statstracker.game_reactions WHERE game_id=$1 AND device_id=$2 AND emoji=$3`, gid, dev, b.Emoji)
-	if err != nil {
-		return fail(c, err)
-	}
-	if n == 0 {
-		if _, err := h.db.Exec(c.Context(), `INSERT INTO statstracker.game_reactions (game_id, device_id, emoji) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, gid, dev, b.Emoji); err != nil {
-			return fail(c, err)
-		}
-	}
-	return c.JSON(fiber.Map{"success": true, "on": n == 0})
+	return c.JSON(fiber.Map{"mvp": mvp, "my_vote": myVote})
 }
 
 // VoteMVP: POST /games/:id/mvp {"person_id": 25, "voter_name": "Akeeme"}  (one vote per device, can change)

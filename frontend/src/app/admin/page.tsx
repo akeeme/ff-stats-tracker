@@ -41,7 +41,8 @@ export default function AdminPage() {
       <div className="rx-sec">Log stats</div>
       <div className="rx-card">
         {[['/admin/stats', 'Stat entry', 'Log a game from film, player by player'], ['/admin/games', 'Games', 'Add games and scores'],
-          ['/admin/players', 'Players', 'Per-season roster rows'], ['/admin/teams', 'Teams', 'Teams and manual records'], ['/admin/seasons', 'Seasons', 'Start or end a season']]
+          ['/admin/players', 'Players', 'Per-season roster rows'], ['/admin/teams', 'Teams', 'Teams and manual records'], ['/admin/seasons', 'Seasons', 'Start or end a season'],
+          ['/admin/reactions', 'Reactions', 'Add, hide or reorder emoji and custom images']]
           .map(([href, t, s]) => <Link key={href} href={href} className="rx-row"><span className="rx-grow"><b>{t}</b><small>{s}</small></span><span className="rx-muted">›</span></Link>)}
       </div>
       </div><div><PeopleEditor /></div></div>

@@ -29,7 +29,7 @@ export default function Home() {
       <TopBar title="🦏 Rhinos" right={`Season ${season}`} />
       <div className="rx-sec">Latest game</div>
       <ScoreCard g={latest} hasStats={latestRows.length > 0}
-        foot={<>Box score, MVP vote and reactions ›</>} />
+        foot={<>Box score and MVP vote ›</>} />
 
       {perfRows.length > 0 && filmed && <>
         <div className="rx-sec">Top performances

@@ -50,6 +50,16 @@ func NewKey(personID int) (string, error) {
 	return fmt.Sprintf("people/%d/%s.jpg", personID, hex.EncodeToString(b)), nil
 }
 
+// NewIconKey is reactions/<code>-<128-bit random>.png. Same bucket as avatars so the existing
+// scoped writer key (Put/Delete on rhinos-avatars/*) covers it; no new credential or policy.
+func NewIconKey(code string) (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("reactions/%s-%s.png", code, hex.EncodeToString(b)), nil
+}
+
 func (s *Store) URL(key string) string { return s.PublicBase + key }
 
 // KeyFromURL returns the object key if url points into this bucket, else "".
@@ -76,7 +86,11 @@ func (s *Store) do(ctx context.Context, method, key string, body []byte) error {
 		return err
 	}
 	if method == http.MethodPut {
-		req.Header.Set("Content-Type", "image/jpeg")
+		ct := "image/jpeg"
+		if strings.HasSuffix(key, ".png") {
+			ct = "image/png"
+		}
+		req.Header.Set("Content-Type", ct)
 		req.Header.Set("Cache-Control", "public, max-age=31536000, immutable") // keys are never reused
 	}
 	s.sign(req, body, time.Now().UTC())

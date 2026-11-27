@@ -28,7 +28,8 @@ func (h *Handlers) SetupRoutes(app fiber.Router) {
 	app.Put("/teams/:id", middleware.AdminRequired(), h.UpdateTeam)
 	app.Delete("/teams/:id", middleware.AdminRequired(), h.DeleteTeam)
 	app.Post("/teams/end-season", middleware.AdminRequired(), h.EndSeason)
-	app.Post("/teams/copy-to-season", middleware.AdminRequired(), h.CopyTeamsToSeason)
+	app.Get("/seasons", h.GetSeasons)
+	app.Post("/seasons/start", middleware.AdminRequired(), h.StartSeason)
 
 	// Players routes
 	app.Post("/players", middleware.AdminRequired(), h.CreatePlayer)
@@ -62,8 +63,16 @@ func (h *Handlers) SetupRoutes(app fiber.Router) {
 	app.Post("/people/:id/avatar", middleware.AdminRequired(), h.UploadAvatar)
 	app.Delete("/people/:id/avatar", middleware.AdminRequired(), h.DeleteAvatar)
 	app.Get("/games/:id/social", h.GetGameSocial)
-	app.Post("/games/:id/react", SocialLimiter(), h.ToggleReaction)
 	app.Post("/games/:id/mvp", SocialLimiter(), h.VoteMVP)
+
+	// Reactions on any card (catalog is admin-editable data)
+	app.Get("/reactions", h.GetReactionTypes)
+	app.Get("/reactions/counts", h.GetReactionCounts)
+	app.Post("/reactions/toggle", SocialLimiter(), h.ToggleTargetReaction)
+	app.Post("/reactions", middleware.AdminRequired(), h.CreateReactionType)
+	app.Put("/reactions/order", middleware.AdminRequired(), h.ReorderReactionTypes)
+	app.Put("/reactions/:code", middleware.AdminRequired(), h.UpdateReactionType)
+	app.Delete("/reactions/:code", middleware.AdminRequired(), h.DeleteReactionType)
 }
 
 // EndSeason marks all teams from a specific season as inactive
@@ -96,55 +105,5 @@ func (h *Handlers) EndSeason(c *fiber.Ctx) error {
 		"success":       true,
 		"message":       fmt.Sprintf("Successfully marked all teams from season %d as inactive", req.Season),
 		"teams_updated": rowsAffected,
-	})
-}
-
-// CopyTeamsToSeason copies teams from one season to another
-func (h *Handlers) CopyTeamsToSeason(c *fiber.Ctx) error {
-	var req models.CopyTeamsRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(400).JSON(models.BaseResponse{
-			Success: false,
-			Message: "Invalid request body",
-		})
-	}
-
-	// Get teams from source season
-	selectQuery := `
-		SELECT name, league FROM statstracker.teams 
-		WHERE season = $1 AND is_deleted = false
-	`
-	rows, err := h.db.Query(c.Context(), selectQuery, req.FromSeason)
-	if err != nil {
-		return c.Status(500).JSON(models.BaseResponse{
-			Success: false,
-			Message: "Failed to fetch source teams",
-		})
-	}
-	defer rows.Close()
-
-	var teamsCopied int
-	for rows.Next() {
-		var name, league string
-		if err := rows.Scan(&name, &league); err != nil {
-			continue
-		}
-
-		// Insert new team for target season
-		insertQuery := `
-			INSERT INTO statstracker.teams (name, season, league, wins, losses, ties, is_active, version, is_deleted, created_at, updated_at)
-			VALUES ($1, $2, $3, 0, 0, 0, 1, 1, false, NOW(), NOW())
-		`
-		_, err := h.db.Exec(c.Context(), insertQuery, name, req.ToSeason, league)
-		if err != nil {
-			continue // Skip teams that fail to insert
-		}
-		teamsCopied++
-	}
-
-	return c.JSON(map[string]interface{}{
-		"success":      true,
-		"message":      fmt.Sprintf("Successfully copied %d teams from season %d to season %d", teamsCopied, req.FromSeason, req.ToSeason),
-		"teams_copied": teamsCopied,
 	})
 }
