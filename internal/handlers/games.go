@@ -24,9 +24,10 @@ func (h *Handlers) CreateGame(c *fiber.Ctx) error {
 
 	// Find teams by name
 	var team1ID, team2ID int
-	teamQuery := "SELECT id FROM statstracker.teams WHERE name = $1 AND is_deleted = false"
+	// this season's row for the team name (names repeat every season; an unordered pick linked games to S1 rows)
+	teamQuery := "SELECT id FROM statstracker.teams WHERE name = $1 AND is_deleted = false ORDER BY (season = $2) DESC, id DESC LIMIT 1"
 
-	err := h.db.QueryRow(context.Background(), teamQuery, req.Team1Name).Scan(&team1ID)
+	err := h.db.QueryRow(context.Background(), teamQuery, req.Team1Name, req.Season).Scan(&team1ID)
 	if err != nil {
 		return c.Status(404).JSON(models.GameResponse{
 			BaseResponse: models.BaseResponse{
@@ -36,7 +37,7 @@ func (h *Handlers) CreateGame(c *fiber.Ctx) error {
 		})
 	}
 
-	err = h.db.QueryRow(context.Background(), teamQuery, req.Team2Name).Scan(&team2ID)
+	err = h.db.QueryRow(context.Background(), teamQuery, req.Team2Name, req.Season).Scan(&team2ID)
 	if err != nil {
 		return c.Status(404).JSON(models.GameResponse{
 			BaseResponse: models.BaseResponse{

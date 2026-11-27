@@ -1,5 +1,5 @@
-import { StatEntry } from '@/components/stat-entry'
+import { redirect } from 'next/navigation'
 
-export default function StatEntryPage() {
-  return <StatEntry />
+export default function Page() {
+  redirect('/admin/stats')
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"ff-stats-tracker/internal/models"
@@ -24,8 +25,9 @@ func (h *Handlers) CreatePlayer(c *fiber.Ctx) error {
 
 	// Find team by name
 	var teamID int
-	teamQuery := "SELECT id FROM statstracker.teams WHERE name = $1 AND is_deleted = false"
-	err := h.db.QueryRow(context.Background(), teamQuery, req.TeamName).Scan(&teamID)
+	// this season's row for the team name (names repeat every season; an unordered pick linked games to S1 rows)
+	teamQuery := "SELECT id FROM statstracker.teams WHERE name = $1 AND is_deleted = false ORDER BY (season = $2) DESC, id DESC LIMIT 1"
+	err := h.db.QueryRow(context.Background(), teamQuery, req.TeamName, req.Season).Scan(&teamID)
 	if err != nil {
 		return c.Status(404).JSON(models.PlayerResponse{
 			BaseResponse: models.BaseResponse{
@@ -339,20 +341,11 @@ func (h *Handlers) UpdatePlayer(c *fiber.Ctx) error {
 
 	args = append(args, id)
 	updateQuery := fmt.Sprintf(`
-		UPDATE players 
-		SET %s 
+		UPDATE statstracker.players
+		SET %s
 		WHERE id = $%d AND is_deleted = false
 		RETURNING id, name, team_id, season, is_active, jersey_number, version, is_deleted, created_at, updated_at, deleted_at
-	`, fmt.Sprintf("%s", setParts[0]), argIndex)
-
-	for i := 1; i < len(setParts); i++ {
-		updateQuery = fmt.Sprintf(`
-			UPDATE players 
-			SET %s 
-			WHERE id = $%d AND is_deleted = false
-			RETURNING id, name, team_id, season, is_active, jersey_number, version, is_deleted, created_at, updated_at, deleted_at
-		`, fmt.Sprintf("%s, %s", setParts[0], setParts[i]), argIndex)
-	}
+	`, strings.Join(setParts, ", "), argIndex)
 
 	var player models.Player
 	err = h.db.QueryRow(context.Background(), updateQuery, args...).Scan(

@@ -1,5 +1,5 @@
-import { SeasonManagement } from '@/components/season-management'
+import { redirect } from 'next/navigation'
 
-export default function SeasonsPage() {
-  return <SeasonManagement />
+export default function Page() {
+  redirect('/admin/seasons')
 }

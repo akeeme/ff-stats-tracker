@@ -1,647 +1,119 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { api, Game, Team } from '@/lib/api'
-import { Calendar, Trophy, Edit, Trash2, Loader2 } from 'lucide-react'
-import { useAdmin } from '@/hooks'
-import { useToast } from '@/hooks/use-toast'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { GameTypeBadge } from '@/components/game-type-badge'
+import Link from 'next/link'
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api, type Game, type Team } from '@/lib/api'
+import { SeasonChips } from '@/components/rx'
+import { AdminPage } from '@/components/admin-ui'
+import { byRecent, gameLabel, seasonsOf, side, TEAM } from '@/lib/derive'
 
-export default function GamesPage() {
-  const queryClient = useQueryClient()
-  const router = useRouter()
-  const { toast } = useToast()
-  const [selectedSeason, setSelectedSeason] = useState<number | null>(null)
-  const [gameTypeFilter, setGameTypeFilter] = useState<'all' | 'regular' | 'playoff' | 'championship'>('all')
-  const { isAdmin, isLoading: adminLoading } = useAdmin()
+type GameType = Game['game_type']
+const TYPES: [GameType, string][] = [['regular', 'Regular'], ['playoff', 'Playoff'], ['championship', 'Championship']]
 
-  // Queries
-  const { data: teams = [], isLoading: teamsLoading } = useQuery({
-    queryKey: ['teams'],
-    queryFn: api.getTeams,
-  })
-
-  const { data: games = [], isLoading: gamesLoading } = useQuery({
-    queryKey: ['games'],
-    queryFn: api.getGames,
-  })
-
-  // Mutations
-  const createGameMutation = useMutation({
-    mutationFn: api.createGame,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['games'] })
-      toast({
-        title: "Game created",
-        description: "The game has been successfully created.",
-        variant: "success",
-      })
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create game. Please try again.",
-        variant: "destructive",
-      })
-    },
-  })
-
-  const updateGameMutation = useMutation({
-    mutationFn: ({ id, game, version }: { id: number; game: Partial<Game>; version: number }) =>
-      api.updateGame(id, game, version),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['games'] })
-      toast({
-        title: "Game updated",
-        description: "The game has been successfully updated.",
-        variant: "success",
-      })
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update game. Please try again.",
-        variant: "destructive",
-      })
-    },
-  })
-
-  const deleteGameMutation = useMutation({
-    mutationFn: ({ id, version }: { id: number; version: number }) =>
-      api.deleteGame(id, version),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['games'] })
-      toast({
-        title: "Game deleted",
-        description: "The game has been successfully deleted.",
-        variant: "success",
-      })
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete game. Please try again.",
-        variant: "destructive",
-      })
-    },
-  })
-
-  // Get unique seasons with null checks
-  const seasons = teams ? Array.from(new Set(teams.map(team => team.season))).sort((a, b) => b - a) : []
-  
-  // Set initial season to the latest when data loads
-  useEffect(() => {
-    if (seasons.length > 0 && selectedSeason === null) {
-      setSelectedSeason(seasons[0]) // seasons is already sorted descending, so [0] is the latest
-    }
-  }, [seasons, selectedSeason])
-  
-  const currentSeasonTeams = teams && selectedSeason ? teams.filter(team => team.season === selectedSeason) : []
-  const currentSeasonGames = games && selectedSeason 
-    ? games
-        .filter(game => game.season === selectedSeason)
-        .filter(game => gameTypeFilter === 'all' || game.game_type === gameTypeFilter)
-    : []
-
-  // Show loading state
-  if (teamsLoading || gamesLoading || adminLoading || selectedSeason === null) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading games...</p>
-        </div>
-      </div>
-    )
-  }
+export default function GamesAdmin() {
+  const games = useQuery({ queryKey: ['games'], queryFn: api.getGames })
+  const teams = useQuery({ queryKey: ['teams'], queryFn: api.getTeams })
+  const [pick, setPick] = useState<number>()
+  const [open, setOpen] = useState<number | 'new'>()
+  const list = (games.data ?? []).filter(g => !g.is_deleted).sort(byRecent)
+  const seasons = [...new Set([...seasonsOf(list), ...(teams.data ?? []).map(t => t.season)])].sort((a, b) => b - a)
+  const season = pick ?? seasons[0]
+  const seasonTeams = (teams.data ?? []).filter(t => t.season === season && !t.is_deleted)
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {/* Header Section */}
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            {isAdmin ? 'Game Management' : 'Games'}
-          </h2>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-            {isAdmin ? 'Manage your games for each season' : 'View games for each season'}
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <Label htmlFor="season-select" className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:whitespace-nowrap">
-            Select Season:
-          </Label>
-          <select
-            id="season-select"
-            value={selectedSeason}
-            onChange={(e) => setSelectedSeason(Number(e.target.value))}
-            className="input-modern w-full sm:w-40"
-          >
-            {seasons.map(season => (
-              <option key={season} value={season}>Season {season}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Create Game Form */}
-      {isAdmin && (
-        <CreateGameForm 
-          teams={currentSeasonTeams}
-          season={selectedSeason}
-          onSubmit={(game) => createGameMutation.mutate(game)}
-          isLoading={createGameMutation.isPending}
-        />
-      )}
-      
-      {/* Game Type Filter */}
-      <div className="card-modern p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:whitespace-nowrap">
-            Select Game:
-          </Label>
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              variant={gameTypeFilter === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setGameTypeFilter('all')}
-              className="flex-1 sm:flex-none"
-            >
-              All
-            </Button>
-            <Button
-              variant={gameTypeFilter === 'regular' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setGameTypeFilter('regular')}
-              className="flex-1 sm:flex-none"
-            >
-              Regular
-            </Button>
-            <Button
-              variant={gameTypeFilter === 'playoff' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setGameTypeFilter('playoff')}
-              className="flex-1 sm:flex-none gap-1"
-            >
-              <Trophy className="h-3 w-3" />
-              Playoffs
-            </Button>
+    <AdminPage title="Games" right={<button className="rx-btn sm" onClick={() => setOpen('new')}>+ Game</button>}>
+      {!games.data || !teams.data ? <p className="rx-pad rx-muted">{games.error || teams.error ? 'Couldn’t load games.' : 'Loading…'}</p> : <>
+        <SeasonChips seasons={seasons} value={season} onChange={v => { setPick(v as number); setOpen(undefined) }} />
+        <div className="rx-cols">
+          <div>
+            {open === 'new' && <>
+              <div className="rx-sec">New game · Season {season}</div>
+              <GameForm season={season} teams={seasonTeams} onDone={() => setOpen(undefined)} />
+            </>}
+            <div className="rx-sec">Season {season}<small>{list.filter(g => g.season === season).length} games</small></div>
+            <div className="rx-card">
+              {list.filter(g => g.season === season).map(g => {
+                const s = side(g)
+                return (
+                  <div key={g.id}>
+                    <div className="rx-row">
+                      <button className="rx-rowbtn" aria-expanded={open === g.id} onClick={() => setOpen(open === g.id ? undefined : g.id)}>
+                        <span className={`rx-wl ${s.res}`}>{s.res}</span>
+                        <span className="rx-grow"><b>vs {s.opp}</b><small>{gameLabel(g)} · {s.us}-{s.them}</small></span>
+                      </button>
+                      <Link href={`/admin/stats?game=${g.id}`} className="rx-btn ghost sm">Log stats</Link>
+                    </div>
+                    {open === g.id && <GameForm season={season} teams={seasonTeams} game={g} onDone={() => setOpen(undefined)} />}
+                  </div>
+                )
+              })}
+              {!list.some(g => g.season === season) && <p className="rx-pad rx-muted">No games yet.</p>}
+            </div>
           </div>
         </div>
-      </div>
-      
-      {/* Games Grid */}
-      {currentSeasonGames.length === 0 ? (
-        <div className="card-modern p-12 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Calendar className="h-8 w-8 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No games found</h3>
-          <p className="text-gray-600">Create your first game for Season {selectedSeason}</p>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {currentSeasonGames.map((game) => (
-            <GameCard
-              key={game.id}
-              game={game}
-              teams={currentSeasonTeams}
-              isAdmin={isAdmin}
-              onUpdate={(updatedGame) => updateGameMutation.mutate({
-                id: game.id,
-                game: updatedGame,
-                version: game.version
-              })}
-              onDelete={() => deleteGameMutation.mutate({
-                id: game.id,
-                version: game.version
-              })}
-              onClick={() => router.push(`/stats?gameId=${game.id}`)}
-              isUpdating={updateGameMutation.isPending}
-              isDeleting={deleteGameMutation.isPending}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      </>}
+    </AdminPage>
   )
 }
 
-function CreateGameForm({ 
-  teams, 
-  season, 
-  onSubmit,
-  isLoading
-}: { 
-  teams: Team[]
-  season: number
-  onSubmit: (game: { team1_name: string; team2_name: string; team1_score: number; team2_score: number; week: number; game_type: 'regular' | 'playoff' | 'championship'; season: number; league: string; winning_team_name?: string }) => void
-  isLoading: boolean
-}) {
-  const [formData, setFormData] = useState({
-    team1_name: '',
-    team2_name: '',
-    team1_score: '',
-    team2_score: '',
-    week: 1,
-    game_type: 'regular' as 'regular' | 'playoff' | 'championship',
-    winning_team_name: '',
-    season: season,
+// Rhinos-only tracker: a game is Rhinos vs one opponent (team1 = Rhinos on new games).
+function GameForm({ season, teams, game, onDone }: { season: number; teams: Team[]; game?: Game; onDone: () => void }) {
+  const qc = useQueryClient()
+  const s = game && side(game)
+  const [f, setF] = useState({
+    opp: s?.opp ?? '', week: String(game?.week ?? ''), type: (game?.game_type ?? 'regular') as GameType,
+    us: s ? String(s.us) : '', them: s ? String(s.them) : '',
   })
-
-  // Update form season when prop changes
-  useEffect(() => {
-    setFormData(prev => ({ ...prev, season }))
-  }, [season])
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Get league from the selected team
-    const selectedTeam = teams.find(t => t.name === formData.team1_name)
-    const league = selectedTeam?.league || ''
-    
-    // Determine winning team based on scores
-    const team1Score = Number(formData.team1_score) || 0
-    const team2Score = Number(formData.team2_score) || 0
-    
-    let winningTeam = formData.winning_team_name
-    if (team1Score > team2Score) {
-      winningTeam = formData.team1_name
-    } else if (team2Score > team1Score) {
-      winningTeam = formData.team2_name
-    }
-    
-    onSubmit({ 
-      ...formData,
-      team1_score: team1Score,
-      team2_score: team2Score,
-      league,
-      winning_team_name: winningTeam || undefined
-    })
-    setFormData({ 
-      team1_name: '', 
-      team2_name: '', 
-      team1_score: '',
-      team2_score: '',
-      week: 1,
-      game_type: 'regular',
-      winning_team_name: '',
-      season: season
-    })
-  }
-
-  return (
-    <div className="card-modern p-8">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
-          <Calendar className="h-5 w-5 text-white" />
-        </div>
-        <div>
-          <h3 className="text-xl font-bold text-gray-900">Create New Game</h3>
-          <p className="text-gray-600 text-sm">Add a new game for the current season</p>
-        </div>
-      </div>
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="team1" className="text-sm font-semibold text-gray-700 mb-2 block">Team 1</Label>
-              <select
-                id="team1"
-                value={formData.team1_name}
-                onChange={(e) => setFormData({ ...formData, team1_name: e.target.value })}
-                className="input-modern"
-                required
-              >
-                <option value="">Select Team 1</option>
-                {teams.map((team) => (
-                  <option key={team.id} value={team.name}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label htmlFor="team1_score" className="text-sm font-semibold text-gray-700 mb-2 block">Team 1 Score</Label>
-              <Input
-                id="team1_score"
-                type="number"
-                min="0"
-                value={formData.team1_score}
-                onChange={(e) => setFormData({ ...formData, team1_score: e.target.value })}
-                onFocus={(e) => e.target.select()}
-                className="input-modern"
-                placeholder="0"
-              />
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="team2" className="text-sm font-semibold text-gray-700 mb-2 block">Team 2</Label>
-              <select
-                id="team2"
-                value={formData.team2_name}
-                onChange={(e) => setFormData({ ...formData, team2_name: e.target.value })}
-                className="input-modern"
-                required
-              >
-                <option value="">Select Team 2</option>
-                {teams
-                  .filter(team => team.name !== formData.team1_name)
-                  .map((team) => (
-                    <option key={team.id} value={team.name}>
-                      {team.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            <div>
-              <Label htmlFor="team2_score" className="text-sm font-semibold text-gray-700 mb-2 block">Team 2 Score</Label>
-              <Input
-                id="team2_score"
-                type="number"
-                min="0"
-                value={formData.team2_score}
-                onChange={(e) => setFormData({ ...formData, team2_score: e.target.value })}
-                onFocus={(e) => e.target.select()}
-                className="input-modern"
-                placeholder="0"
-              />
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <Label htmlFor="week" className="text-sm font-semibold text-gray-700 mb-2 block">Week</Label>
-            <Input
-              id="week"
-              type="number"
-              min="1"
-              max="20"
-              value={formData.week}
-              onChange={(e) => setFormData({ ...formData, week: Number(e.target.value) })}
-              className="input-modern"
-              placeholder="Enter week number (1-20)"
-              required
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="game_type" className="text-sm font-semibold text-gray-700 mb-2 block">Game Type</Label>
-            <select
-              id="game_type"
-              value={formData.game_type}
-              onChange={(e) => setFormData({ ...formData, game_type: e.target.value as 'regular' | 'playoff' | 'championship' })}
-              className="input-modern"
-              required
-            >
-              <option value="regular">Regular Season</option>
-              <option value="playoff">Playoff</option>
-              <option value="championship">Championship</option>
-            </select>
-          </div>
-        </div>
-        
-        <Button type="submit" className="w-full btn-primary" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Creating...
-            </>
-          ) : (
-            <>
-              <Calendar className="h-4 w-4 mr-2" />
-              Create Game
-            </>
-          )}
-        </Button>
-      </form>
-    </div>
-  )
-}
-
-function GameCard({ 
-  game, 
-  teams,
-  isAdmin,
-  onUpdate, 
-  onDelete,
-  onClick,
-  isUpdating,
-  isDeleting
-}: { 
-  game: Game
-  teams: Team[]
-  isAdmin: boolean
-  onUpdate: (game: Partial<Game>) => void
-  onDelete: () => void
-  onClick: () => void
-  isUpdating: boolean
-  isDeleting: boolean
-}) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [editData, setEditData] = useState({
-    team1_name: game.team1_name,
-    team2_name: game.team2_name,
-    team1_score: game.team1_score,
-    team2_score: game.team2_score,
-    week: game.week,
-    league: game.league,
-    season: game.season,
-    winning_team_name: game.winning_team_name || '',
+  const [err, setErr] = useState('')
+  const done = async () => { await qc.invalidateQueries({ queryKey: ['games'] }); onDone() }
+  const save = useMutation({
+    mutationFn: async () => {
+      const us = Number(f.us) || 0, them = Number(f.them) || 0, week = Number(f.week)
+      if (!week || week < 1) throw new Error('Week is required')
+      if (!game) {
+        if (!f.opp) throw new Error('Pick an opponent')
+        const rh = teams.find(t => t.name === TEAM)
+        if (!rh) throw new Error(`No ${TEAM} team in season ${season}. Add it on Teams first.`)
+        return api.createGame({ team1_name: TEAM, team2_name: f.opp, team1_score: us, team2_score: them, week, season, game_type: f.type,
+          league: rh.league, winning_team_name: us > them ? TEAM : them > us ? f.opp : undefined })
+      }
+      const [a, b] = s!.isHome ? [us, them] : [them, us]
+      const win = a > b ? game.team1_id : b > a ? game.team2_id : undefined
+      return api.updateGame(game.id, { week, game_type: f.type, team1_score: a, team2_score: b, ...(win ? { winning_team_id: win } : {}) }, game.version)
+    },
+    onSuccess: done,
+    onError: (e: Error) => setErr(e.message),
   })
-
-  const handleSave = () => {
-    // Determine winning team based on scores
-    let winningTeam = editData.winning_team_name
-    if (editData.team1_score > editData.team2_score) {
-      winningTeam = editData.team1_name
-    } else if (editData.team2_score > editData.team1_score) {
-      winningTeam = editData.team2_name
-    } else {
-      winningTeam = '' // Tie
-    }
-    
-    onUpdate({
-      ...editData,
-      winning_team_name: winningTeam || undefined
-    })
-    setIsEditing(false)
-  }
-  
-  const handleDelete = () => {
-    onDelete()
-    setShowDeleteDialog(false)
-  }
-
+  const del = useMutation({ mutationFn: () => api.deleteGame(game!.id, game!.version), onSuccess: done, onError: (e: Error) => setErr(e.message) })
+  const opps = teams.filter(t => t.name !== TEAM)
   return (
-    <div 
-      onClick={(e) => {
-        // Don't navigate if clicking on buttons or inputs
-        if (!(e.target as HTMLElement).closest('button, input, select')) {
-          onClick()
-        }
-      }}
-      className="relative card-bubbly p-4 sm:p-6 border-2 border-gray-200/50 dark:border-gray-600/50 hover:border-green-400/60 dark:hover:border-green-500/60 hover:shadow-2xl hover:shadow-green-500/20 transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80 cursor-pointer"
-    >
-      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-green-400/10 to-transparent rounded-bl-full"></div>
-      
-      <div className="flex items-center justify-between mb-4 relative z-10">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30 ring-2 ring-green-400/20">
-            <Calendar className="h-6 w-6 text-white" />
-          </div>
-          <div className="flex-1">
-            {isAdmin && isEditing ? (
-              <div className="space-y-2 w-full">
-                <div className="flex gap-2 items-center">
-                  <select
-                    value={editData.team1_name}
-                    onChange={(e) => setEditData({ ...editData, team1_name: e.target.value })}
-                    className="text-sm font-bold border rounded px-2 py-1 flex-1"
-                  >
-                    {teams.map((team) => (
-                      <option key={team.id} value={team.name}>
-                        {team.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={editData.team1_score}
-                    onChange={(e) => setEditData({ ...editData, team1_score: Number(e.target.value) })}
-                    onFocus={(e) => e.target.select()}
-                    className="w-16 text-center"
-                    placeholder="0"
-                  />
-                </div>
-                <div className="flex gap-2 items-center">
-                  <select
-                    value={editData.team2_name}
-                    onChange={(e) => setEditData({ ...editData, team2_name: e.target.value })}
-                    className="text-sm font-bold border rounded px-2 py-1 flex-1"
-                  >
-                    {teams.map((team) => (
-                      <option key={team.id} value={team.name}>
-                        {team.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={editData.team2_score}
-                    onChange={(e) => setEditData({ ...editData, team2_score: Number(e.target.value) })}
-                    onFocus={(e) => e.target.select()}
-                    className="w-16 text-center"
-                    placeholder="0"
-                  />
-                </div>
-                <Input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={editData.week}
-                  onChange={(e) => setEditData({ ...editData, week: Number(e.target.value) })}
-                  className="w-24"
-                  placeholder="Week"
-                />
-              </div>
-            ) : (
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white break-words">
-                  <span className="block sm:inline">{game.team1_name} ({game.team1_score})</span>{' '}
-                  <span className="text-gray-400 dark:text-gray-500">vs</span>{' '}
-                  <span className="block sm:inline">{game.team2_name} ({game.team2_score})</span>
-                </h3>
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <span className="inline-block px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs font-bold">
-                    Week {game.week}
-                  </span>
-                  <GameTypeBadge gameType={game.game_type} size="sm" />
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Season {game.season}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {isAdmin && (
-          <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button size="sm" onClick={handleSave} className="btn-primary" disabled={isUpdating}>
-                  {isUpdating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    'Save'
-                  )}
-                </Button>
-                <Button size="sm" onClick={() => setIsEditing(false)} className="btn-secondary" disabled={isUpdating}>
-                  Cancel
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button size="sm" onClick={() => setIsEditing(true)} className="btn-ghost" disabled={isDeleting}>
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={() => setShowDeleteDialog(true)} 
-                  className="btn-ghost text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </Button>
-              </>
-            )}
-          </div>
-        )}
+    <form className={`rx-form${game ? '' : ' rx-card'}`} onSubmit={e => { e.preventDefault(); setErr(''); save.mutate() }}>
+      {!game && <>
+        <label htmlFor="opp">Opponent</label>
+        <select id="opp" className="rx-input" value={f.opp} onChange={e => setF({ ...f, opp: e.target.value })} required>
+          <option value="" disabled>{opps.length ? 'Choose…' : 'No other teams this season'}</option>
+          {opps.map(t => <option key={t.id}>{t.name}</option>)}
+        </select>
+      </>}
+      <div className="rx-2">
+        <div><label htmlFor={`wk${game?.id}`}>Week</label><input id={`wk${game?.id}`} className="rx-input" inputMode="numeric" value={f.week} onChange={e => setF({ ...f, week: e.target.value.replace(/\D/g, '') })} required /></div>
+        <div><label htmlFor={`ty${game?.id}`}>Type</label>
+          <select id={`ty${game?.id}`} className="rx-input" value={f.type} onChange={e => setF({ ...f, type: e.target.value as GameType })}>
+            {TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select></div>
       </div>
-      
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Game?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete the game <strong>{game.team1_name} vs {game.team2_name}</strong>? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {game.winning_team_name && (
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-xl p-3 text-center border border-yellow-200 dark:border-yellow-800">
-            <div className="flex items-center justify-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
-              <span className="font-bold text-yellow-800 dark:text-yellow-300">
-                Winner: {game.winning_team_name}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <div className="rx-2">
+        <div><label htmlFor={`us${game?.id}`}>{TEAM}</label><input id={`us${game?.id}`} className="rx-input" inputMode="numeric" value={f.us} onChange={e => setF({ ...f, us: e.target.value.replace(/\D/g, '') })} /></div>
+        <div><label htmlFor={`th${game?.id}`}>{s?.opp ?? (f.opp || 'Opponent')}</label><input id={`th${game?.id}`} className="rx-input" inputMode="numeric" value={f.them} onChange={e => setF({ ...f, them: e.target.value.replace(/\D/g, '') })} /></div>
+      </div>
+      <div className="rx-acts">
+        <button className="rx-btn" disabled={save.isPending}>{save.isPending ? 'Saving…' : game ? 'Save game' : 'Add game'}</button>
+        <button type="button" className="rx-btn ghost" onClick={onDone}>Cancel</button>
+        {game && <button type="button" className="rx-btn danger" style={{ marginLeft: 'auto' }} disabled={del.isPending}
+          onClick={() => confirm(`Delete the game vs ${s!.opp}? Its stat rows stay in the database but won’t show.`) && del.mutate()}>Delete</button>}
+      </div>
+      {err && <p className="rx-err" role="alert">{err}</p>}
+    </form>
   )
 }

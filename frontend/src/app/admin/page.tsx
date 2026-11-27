@@ -35,16 +35,17 @@ export default function AdminPage() {
     )
   }
   return (
-    <>
+    <div className="rx-admin">
       <TopBar title="Admin" right={<button onClick={() => logout()} style={{ background: 'none', border: 0, color: 'inherit', font: 'inherit', cursor: 'pointer' }}>Sign out</button>} />
+      <div className="rx-cols"><div>
       <div className="rx-sec">Log stats</div>
       <div className="rx-card">
-        {[['/stat-entry', 'Stat entry', 'Enter a game\'s box score'], ['/admin/games', 'Games', 'Add games and scores'],
-          ['/admin/players', 'Players', 'Per-season roster rows'], ['/teams', 'Teams', 'Teams and manual records'], ['/seasons', 'Seasons', 'Start or end a season']]
+        {[['/admin/stats', 'Stat entry', 'Log a game from film, player by player'], ['/admin/games', 'Games', 'Add games and scores'],
+          ['/admin/players', 'Players', 'Per-season roster rows'], ['/admin/teams', 'Teams', 'Teams and manual records'], ['/admin/seasons', 'Seasons', 'Start or end a season']]
           .map(([href, t, s]) => <Link key={href} href={href} className="rx-row"><span className="rx-grow"><b>{t}</b><small>{s}</small></span><span className="rx-muted">›</span></Link>)}
       </div>
-      <PeopleEditor />
-    </>
+      </div><div><PeopleEditor /></div></div>
+    </div>
   )
 }
 

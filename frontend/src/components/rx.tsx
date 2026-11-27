@@ -28,7 +28,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname() || '/'
   const { isAdmin } = useAdmin()
   useEffect(() => { document.body.classList.add('rx') }, [])
-  const tabs = isAdmin ? [...TABS, { href: '/admin', label: 'Log', icon: icons.log, match: (p: string) => p.startsWith('/admin') || p.startsWith('/stat-entry') }] : TABS
+  const tabs = isAdmin ? [...TABS, { href: '/admin', label: 'Log', icon: icons.log, match: (p: string) => p.startsWith('/admin') }] : TABS
   return (
     <>
       <div className="rx-app">{children}</div>

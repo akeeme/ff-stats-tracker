@@ -15,15 +15,17 @@ type BaseModel struct {
 
 // Team represents a team in the system
 type Team struct {
-	ID          int    `json:"id" db:"id"`
-	Name        string `json:"name" db:"name"`
-	Season      int    `json:"season" db:"season"`
-	League      string `json:"league" db:"league"`
-	Wins        int    `json:"wins" db:"wins"`
-	Losses      int    `json:"losses" db:"losses"`
-	Ties        int    `json:"ties" db:"ties"`
-	IsActive    int    `json:"is_active" db:"is_active"`
-	DisplayName string `json:"display_name"`
+	ID       int    `json:"id" db:"id"`
+	Name     string `json:"name" db:"name"`
+	Season   int    `json:"season" db:"season"`
+	League   string `json:"league" db:"league"`
+	Wins     int    `json:"wins" db:"wins"`
+	Losses   int    `json:"losses" db:"losses"`
+	Ties     int    `json:"ties" db:"ties"`
+	IsActive int    `json:"is_active" db:"is_active"`
+	// RecordManual: show the stored W/L instead of the record computed from games (other teams' games aren't tracked)
+	RecordManual bool   `json:"record_manual" db:"record_manual"`
+	DisplayName  string `json:"display_name"`
 	BaseModel
 }
 

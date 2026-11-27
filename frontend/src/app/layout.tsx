@@ -6,7 +6,6 @@ import { QueryProvider } from "@/providers/query-provider"
 import { ThemeProvider } from "@/providers/theme-provider"
 import { AdminProvider } from "@/providers/admin-provider"
 import { Shell } from "@/components/rx"
-import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -31,7 +30,6 @@ export default function RootLayout({
               <Shell>
                 {children}
               </Shell>
-              <Toaster />
             </AdminProvider>
           </QueryProvider>
         </ThemeProvider>

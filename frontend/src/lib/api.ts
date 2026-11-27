@@ -143,6 +143,13 @@ export const api = {
     body.append('file', file);
     return json(await fetch(`${API_BASE_URL}/people/${id}/avatar`, { method: 'POST', body }), 'upload photo');
   },
+  // Stat entry: absolute values. Create by ids (409 if the row already exists), edit with optimistic version.
+  async createStatsById(body: { player_id: number; game_id: number } & Partial<Record<string, number>>) {
+    return json<{ data: PlayerStats }>(await fetch(`${API_BASE_URL}/stats`, { method: 'POST', headers: getHeaders(), body: JSON.stringify(body) }), 'save stats');
+  },
+  async saveStats(id: number, version: number, body: Partial<Record<string, number>>) {
+    return json<{ data: PlayerStats }>(await fetch(`${API_BASE_URL}/stats/${id}?version=${version}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(body) }), 'save stats');
+  },
   async getGameSocial(gameId: number): Promise<GameSocial> {
     return json(await fetch(`${API_BASE_URL}/games/${gameId}/social`, { cache: 'no-store' }), 'fetch reactions');
   },
@@ -265,6 +272,7 @@ export const api = {
     team2_name: string;
     team2_score?: number;
     winning_team_name?: string;
+    game_type?: Game['game_type'];
   }) {
     const response = await fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
